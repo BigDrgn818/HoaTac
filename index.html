@@ -252,7 +252,7 @@ function render() {
   // 🛠 MODE ADMIN (có checkbox)
   if (mode === "admin") {
   if (!isAdmin) {
-    table.innerHTML = "<tr><td>🔒 Không có quyền truy cập</td></tr>";
+    table.innerHTML = ""; // 👈 không hiện gì
     return;
   }
     let header = "<tr><th>Hoa</th>";
