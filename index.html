@@ -255,6 +255,15 @@ function getColorClass(type) {
   }
 }
 
+function removeVietnameseTones(str) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
 function checkAdmin() {
   const pass = prompt("Nhập mật khẩu admin");
 
@@ -356,7 +365,8 @@ function render() {
   }
 
   const matchedFlowers = flowers.filter(f =>
-  (f.flower_name || "").toLowerCase().includes(keyword)
+  removeVietnameseTones(f.flower_name || "")
+  .includes(removeVietnameseTones(keyword))
 );
 
   const flowerIds = matchedFlowers.map(f => String(f.id));
@@ -418,8 +428,9 @@ function handleSearch() {
   }
 
   const matched = flowers.filter(f =>
-    (f.flower_name || "").toLowerCase().includes(keyword)
-  );
+  removeVietnameseTones(f.flower_name || "")
+    .includes(removeVietnameseTones(keyword))
+);
 
   if (matched.length === 0) {
     box.style.display = "none";
