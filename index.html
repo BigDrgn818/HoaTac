@@ -158,6 +158,11 @@ tr:hover td {
     padding: 6px;
   }
 }
+
+.text-red { color: #e11d48; }
+.text-orange { color: #f97316; }
+.text-purple { color: #8b5cf6; }
+.text-blue { color: #3b82f6; }
 </style>
 </head>
 
@@ -174,12 +179,15 @@ tr:hover td {
   <input id="search" placeholder="Tìm hoa..." oninput="handleSearch()" autocomplete="off">
 
   <div id="suggestions" style="
-    position:absolute;
-    background:white;
-    border:1px solid #ccc;
-    width:200px;
-    display:none;
-    z-index:10;
+    position: absolute;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  overflow: hidden;
+
+  min-width: 250px;
+  width: auto;            /* 🔥 auto theo nội dung */
+  max-width: 350px;       /* tránh quá dài */
   "></div>
 </div>
 
@@ -202,6 +210,16 @@ let isAdmin = false;
 function setMode(m) {
   mode = m;
   render();
+}
+
+function getColorClass(type) {
+  switch ((type || "").toLowerCase()) {
+    case "đỏ": return "text-red";
+    case "cam": return "text-orange";
+    case "tím": return "text-purple";
+    case "lam": return "text-blue";
+    default: return "";
+  }
 }
 
 function checkAdmin() {
@@ -247,7 +265,9 @@ function render() {
 <tr>
   <td>
     <img src="${f.flower_img}" style="width:40px;height:40px;border-radius:6px;"><br>
-    ${f.flower_name} (${f.flower_type})
+    <span class="${getColorClass(f.flower_type)}">
+  ${f.flower_name}
+</span> (${f.flower_type})
   </td>
 `;
 
@@ -354,10 +374,17 @@ function handleSearch() {
   matched.slice(0, 5).forEach(f => {
     const item = document.createElement("div");
     item.innerHTML = `
-  <div style="display:flex;align-items:center;gap:8px;">
+  <div style="
+    display:flex;
+    align-items:center;
+    gap:8px;
+    white-space: nowrap;   /* 🔥 không xuống dòng */
+  ">
     <img src="${f.flower_img}" 
          style="width:30px;height:30px;border-radius:6px;object-fit:cover;">
-    <span>${f.flower_name}</span>
+    <span class="${getColorClass(f.flower_type)}">
+  ${f.flower_name}
+</span>
   </div>
 `;
     item.style.padding = "5px";
