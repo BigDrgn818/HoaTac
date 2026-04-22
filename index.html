@@ -212,10 +212,10 @@ select {
   <option value="">-- Chọn thành viên --</option>
 </select>
 
-  <div class="search-box">
-    <input id="search" placeholder="Tìm hoa..." oninput="handleSearch()" autocomplete="off">
-    <div id="suggestions"></div>
-  </div>
+  <div class="search-box" id="searchBox">
+  <input id="search" placeholder="Tìm hoa..." oninput="handleSearch()" autocomplete="off">
+  <div id="suggestions"></div>
+</div>
 </div>
 
 <div class="table-container">
@@ -238,7 +238,8 @@ function setMode(m) {
   mode = m;
 
   if (m === "search") {
-    document.getElementById("userSelect").style.display = "none"; // 👈 ẩn
+    document.getElementById("userSelect").style.display = "none";
+    document.getElementById("searchBox").style.display = "block"; // 👈 hiện lại
   }
 
   render();
@@ -261,7 +262,8 @@ function checkAdmin() {
   isAdmin = true;
   mode = "admin";
 
-  document.getElementById("userSelect").style.display = "inline-block"; // 👈 hiện dropdown
+  document.getElementById("userSelect").style.display = "inline-block";
+  document.getElementById("searchBox").style.display = "none"; // 👈 ẩn search
 
   render();
 } else {
