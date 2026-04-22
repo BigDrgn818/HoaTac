@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
 <title>Hoa Tặc Hội - Quản lý hoa</title>
 
@@ -128,8 +129,13 @@ tr:hover td {
 
 /* mobile */
 @media (max-width: 768px) {
-  input {
-    width: 100%;
+
+  body {
+    padding: 10px;
+  }
+
+  h2 {
+    font-size: 18px;
   }
 
   .toolbar {
@@ -137,8 +143,19 @@ tr:hover td {
     align-items: stretch;
   }
 
+  input {
+    width: 100%;
+    font-size: 16px;
+  }
+
   button {
     width: 100%;
+    font-size: 16px;
+  }
+
+  th, td {
+    font-size: 12px;
+    padding: 6px;
   }
 }
 </style>
