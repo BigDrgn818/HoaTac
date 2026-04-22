@@ -293,7 +293,15 @@ function render() {
   let html = "<tr><th>Thành viên có</th></tr>";
 
   matchedUsers.forEach(u => {
-    html += `<tr><td>${u.name}</td></tr>`;
+    html += `
+<tr>
+  <td style="display:flex;align-items:center;gap:10px;">
+    <img src="${matchedFlowers[0].flower_img}" 
+         style="width:40px;height:40px;border-radius:6px;">
+    ${u.name}
+  </td>
+</tr>
+`;
   });
 
   table.innerHTML = html;
@@ -345,7 +353,13 @@ function handleSearch() {
 
   matched.slice(0, 5).forEach(f => {
     const item = document.createElement("div");
-    item.innerText = f.flower_name;
+    item.innerHTML = `
+  <div style="display:flex;align-items:center;gap:8px;">
+    <img src="${f.flower_img}" 
+         style="width:30px;height:30px;border-radius:6px;object-fit:cover;">
+    <span>${f.flower_name}</span>
+  </div>
+`;
     item.style.padding = "5px";
     item.style.cursor = "pointer";
 
