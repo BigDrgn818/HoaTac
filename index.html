@@ -70,12 +70,24 @@ input:focus {
 /* dropdown */
 #suggestions {
   position: absolute;
-  top: 45px;
-  width: 250px;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+
   background: white;
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  overflow: hidden;
+
+  width: 100%;
+  max-width: 100%;
+
+  z-index: 999;
+  display: none;
+
+max-height: 250px;
+overflow-y: auto;
+
+-webkit-overflow-scrolling: touch;
 }
 
 /* suggestion item */
@@ -153,6 +165,11 @@ tr:hover td {
     font-size: 16px;
   }
 
+ .search-box {
+    width: 100%;
+    max-width: 100%;   /* 🔥 thêm dòng này */
+  }
+
   th, td {
     font-size: 12px;
     padding: 6px;
@@ -163,6 +180,12 @@ tr:hover td {
 .text-orange { color: #f97316; }
 .text-purple { color: #8b5cf6; }
 .text-blue { color: #3b82f6; }
+
+.search-box {
+  position: relative;
+  width: 100%;       /* 🔥 full theo layout */
+  max-width: 300px;  /* desktop vẫn đẹp */
+}
 </style>
 </head>
 
@@ -175,20 +198,10 @@ tr:hover td {
 <div class="toolbar" style="position: relative;">
   <button onclick="checkAdmin()">🛠 Quản lý</button>
   <button onclick="setMode('search')">🔍 Tìm kiếm</button>
-
+  <div class="search-box">
   <input id="search" placeholder="Tìm hoa..." oninput="handleSearch()" autocomplete="off">
-
-  <div id="suggestions" style="
-    position: absolute;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  overflow: hidden;
-
-  min-width: 250px;
-  width: auto;            /* 🔥 auto theo nội dung */
-  max-width: 350px;       /* tránh quá dài */
-  "></div>
+  <div id="suggestions"></div>
+</div>
 </div>
 
 <div class="table-container">
@@ -267,7 +280,7 @@ function render() {
     <img src="${f.flower_img}" style="width:40px;height:40px;border-radius:6px;"><br>
     <span class="${getColorClass(f.flower_type)}">
   ${f.flower_name}
-</span> (${f.flower_type})
+</span>
   </td>
 `;
 
