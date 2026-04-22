@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Hoa Tặc Hội - Quản lý hoa</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  background: #f5f7fb;
+  margin: 0;
+  padding: 20px;
+}
+
+/* container */
+.app {
+  max-width: 1200px;
+  margin: auto;
+}
+
+/* title */
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* toolbar */
+.toolbar {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+/* button */
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #4338ca;
+}
+
+/* input */
+input {
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  width: 250px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #4f46e5;
+}
+
+/* dropdown */
+#suggestions {
+  position: absolute;
+  top: 45px;
+  width: 250px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+/* suggestion item */
+#suggestions div:hover {
+  background: #f0f4ff;
+}
+
+/* table container */
+.table-container {
+  max-height: 500px;
+  overflow: auto;
+  border-radius: 15px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* table */
+table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+}
+
+th, td {
+  border: 1px solid #eee;
+  padding: 10px;
+  text-align: center;
+}
+
+/* header */
+th {
+  position: sticky;
+  top: 0;
+  background: #f9fafc;
+  z-index: 2;
+}
+
+/* first column */
+td:first-child, th:first-child {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 1;
+  text-align: left;
+}
+
+/* hover */
+tr:hover td {
+  background: #f9fbff;
+}
+
+/* mobile */
+@media (max-width: 768px) {
+  input {
+    width: 100%;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h2>Danh sách hoa sở hữu</h2>
+
+<div class="toolbar" style="position: relative;">
+  <button onclick="checkAdmin()">🛠 Quản lý</button>
+  <button onclick="setMode('search')">🔍 Tìm kiếm</button>
+
+  <input id="search" placeholder="Tìm hoa..." oninput="handleSearch()" autocomplete="off">
+
+  <div id="suggestions" style="
+    position:absolute;
+    background:white;
+    border:1px solid #ccc;
+    width:200px;
+    display:none;
+    z-index:10;
+  "></div>
+</div>
+
+<div class="table-container">
+  <table id="table"></table>
+</div>
+
+<script>
+const client = window.supabase.createClient(
+  "https://csnnjdfrngfxtslrqfmp.supabase.co",
+  "sb_publishable_kzbQOGWNKo5e0z7j-GQwmg_LXcJVM2p"
+);
+
+let flowers = [];
+let users = [];
+
+let mode = "admin";
+let isAdmin = false;
+
+function setMode(m) {
+  mode = m;
+  render();
+}
+
+function checkAdmin() {
+  const pass = prompt("Nhập mật khẩu admin");
+
+  if (pass === "hoatac") {
+    isAdmin = true;
+    mode = "admin";
+    render();
+  } else {
+    alert("Sai mật khẩu");
+  }
+}
+
+async function load() {
+  const { data: f } = await client.from("flowers").select("*");
+  const { data: u } = await client.from("users").select("*");
+
+  flowers = f;
+  users = u;
+
+  render();
+}
+
+function render() {
+  const keyword = document.getElementById("search")?.value?.toLowerCase() || "";
+  const table = document.getElementById("table");
+  table.innerHTML = "";
+
+  // 🛠 MODE ADMIN (có checkbox)
+  if (mode === "admin") {
+  if (!isAdmin) {
+    table.innerHTML = "<tr><td>🔒 Không có quyền truy cập</td></tr>";
+    return;
+  }
+    let header = "<tr><th>Hoa</th>";
+    users.forEach(u => header += `<th>${u.name}</th>`);
+    header += "</tr>";
+    table.innerHTML += header;
+
+    flowers.forEach(f => {
+      let row = `<tr><td>${f.flower_name} (${f.flower_type})</td>`;
+
+      users.forEach(u => {
+        const checked = u.flowers?.includes(String(f.id)) ? "checked" : "";
+
+        row += `
+        <td>
+          <input type="checkbox"
+          ${checked}
+          onchange="toggle(${u.id}, ${f.id}, this.checked)">
+        </td>`;
+      });
+
+      row += "</tr>";
+      table.innerHTML += row;
+    });
+
+    return;
+  }
+
+  // 🔍 MODE SEARCH (chỉ hiện người)
+  if (!keyword) {
+    table.innerHTML = "<tr><td>🔍 Nhập để tìm...</td></tr>";
+    return;
+  }
+
+  const matchedFlowers = flowers.filter(f =>
+  (f.flower_name || "").toLowerCase().includes(keyword)
+);
+
+  const flowerIds = matchedFlowers.map(f => String(f.id));
+
+  const matchedUsers = users.filter(u =>
+    u.flowers?.some(f => flowerIds.includes(f))
+  );
+
+  if (matchedUsers.length === 0) {
+    table.innerHTML = "<tr><td>❌ Không có kết quả</td></tr>";
+    return;
+  }
+
+  let html = "<tr><th>Thành viên có</th></tr>";
+
+  matchedUsers.forEach(u => {
+    html += `<tr><td>${u.name}</td></tr>`;
+  });
+
+  table.innerHTML = html;
+}
+
+async function toggle(userId, flowerId, isChecked) {
+  const user = users.find(u => u.id === userId);
+
+  let list = user.flowers || [];
+
+  if (isChecked) {
+    if (!list.includes(String(flowerId)))
+      list.push(String(flowerId));
+  } else {
+    list = list.filter(f => f != flowerId);
+  }
+
+  await client
+    .from("users")
+    .update({ flowers: list })
+    .eq("id", userId);
+
+  user.flowers = list;
+}
+
+load();
+
+function handleSearch() {
+  const keyword = document.getElementById("search").value.toLowerCase();
+  const box = document.getElementById("suggestions");
+
+  if (!keyword) {
+    box.style.display = "none";
+    render();
+    return;
+  }
+
+  const matched = flowers.filter(f =>
+    (f.flower_name || "").toLowerCase().includes(keyword)
+  );
+
+  if (matched.length === 0) {
+    box.style.display = "none";
+    render();
+    return;
+  }
+
+  box.innerHTML = "";
+
+  matched.slice(0, 5).forEach(f => {
+    const item = document.createElement("div");
+    item.innerText = f.flower_name;
+    item.style.padding = "5px";
+    item.style.cursor = "pointer";
+
+    item.onclick = () => {
+      document.getElementById("search").value = f.flower_name;
+      box.style.display = "none";
+      render();
+    };
+
+    box.appendChild(item);
+  });
+
+  box.style.display = "block";
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".toolbar")) {
+    document.getElementById("suggestions").style.display = "none";
+  }
+});
+</script>
+
+</body>
+</html>
