@@ -596,13 +596,41 @@ async function addFlower() {
   }
 
   // 🔥 insert DB (có thể không có ảnh)
-  await client.from("flowers").insert([
+  const { error: insertError } = await client.from("flowers").insert([
     {
       flower_name: name,
       flower_type: type,
       flower_img: imageUrl
     }
   ]);
+
+  if (insertError) {
+    console.error(insertError);
+    return showToast("Lỗi thêm hoa");
+  }
+
+  // 🔥 DÁN NGAY DƯỚI ĐÂY
+  const { data: flowers } = await client.from("flowers").select("*");
+  allFlowers = flowers || [];
+
+  buildFlowerCount();
+
+  const activeTab = document.querySelector(".nav-item.active")?.innerText || "";
+  if (activeTab.includes("HOA")) {
+    renderFlowerGrid();
+  }
+
+  showToast("Đã thêm hoa");
+
+  // reset
+  document.getElementById("flowerName").value = "";
+  document.getElementById("flowerType").value = "";
+  document.getElementById("flowerFile").value = "";
+
+  if (insertError) {
+    console.error(insertError);
+    return showToast("Lỗi thêm hoa");
+  }
 
   showToast("Đã thêm hoa");
 
@@ -849,8 +877,19 @@ async function handleLogin() {
   closeLoginModal();
 
   // admin vào admin, mod thì về tab user
-  if (currentRole === "admin") renderAdmin();
-  else renderUserGrid();
+  tabs.forEach(t => t.classList.remove("active"));
+
+  if (currentRole === "admin") {
+    // 👉 set tab Quản lý active
+    [...tabs].find(t => t.innerText.includes("QUẢN"))?.classList.add("active");
+
+    renderAdmin();
+  } else {
+    // 👉 set tab Thành viên active
+    [...tabs].find(t => t.innerText.includes("THÀNH"))?.classList.add("active");
+
+    renderUserGrid();
+  }
 }
 
 async function openLoginModal() {
