@@ -1,7 +1,6 @@
 let allFlowers = [];
 let editingUser = null;
 let currentRole = "guest"; // guest | mod | admin
-/*let canEdit = false; // chỉ true sau khi nhập đúng pw*/
 const EDIT_PASSWORD = "hoatac";
 
 const client = window.supabase.createClient(
@@ -9,44 +8,9 @@ const client = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzbm5qZGZybmdmeHRzbHJxZm1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDIyMTcsImV4cCI6MjA5MjQxODIxN30.Td5TsgdOVBNy1J_s5ap2MmMQ3t407TmUwvMi5nfil5Y"
 );
 
-async function loadFlowers() {
+/*async function loadFlowers() {
   const { data } = await client.from("flowers").select("*");
   allFlowers = data || [];
-}
-loadFlowers();
-
-/* SEARCH 
-function handleSearch() {
-  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
-  const activeTab = document.querySelector(".nav-item.active").innerText;
-
-  // 🔥 HOA TƯƠI
-  if (activeTab.includes("HOA")) {
-    if (!keyword) {
-      renderFlowerGrid(); // quay về mặc định
-      return;
-    }
-
-    const filtered = allFlowers.filter(f =>
-      f.flower_name.toLowerCase().includes(keyword)
-    );
-
-    renderFlowerFiltered(filtered);
-  }
-
-  // 🔥 THÀNH VIÊN
-  if (activeTab.includes("THÀNH")) {
-    if (!keyword) {
-      renderUserGrid(); // quay về mặc định
-      return;
-    }
-
-    const filtered = allUsers.filter(u =>
-      u.name.toLowerCase().includes(keyword)
-    );
-
-    renderUserFiltered(filtered);
-  }
 }*/
 
 /* SELECT */
@@ -64,9 +28,19 @@ function selectFlower(id, name, img) {
   document.getElementById("selectedTag").classList.remove("hidden");
 
   renderResult(id);
+  document.getElementById("searchInput").disabled = true;
 }
 
 function selectUser(name) {
+  // 🔥 set tag giống hoa
+  const tagText = document.getElementById("tagText");
+  tagText.innerText = name;
+  tagText.style.color = "#333"; // user không có phẩm
+
+  document.getElementById("tagImg").src =
+    "https://ui-avatars.com/api/?name=" + encodeURIComponent(name);
+
+  document.getElementById("selectedTag").classList.remove("hidden");
   const user = allUsers.find(u => u.name === name);
   if (!user) return;
 
@@ -105,12 +79,14 @@ function selectUser(name) {
       </div>
     </div>
   `;
+  document.getElementById("searchInput").disabled = true;
 }
 
 /* CLEAR */
 document.getElementById("tagRemove").onclick = () => {
+  document.getElementById("searchInput").disabled = false;
   document.getElementById("selectedTag").classList.add("hidden");
-
+  editingUser = null; // 🔥 reset trạng thái user
   const input = document.getElementById("searchInput");
   input.value = "";
   input.focus();
@@ -167,6 +143,7 @@ const tabs = document.querySelectorAll(".nav-item");
 
 tabs.forEach(tab => {
   tab.onclick = () => {
+    document.getElementById("searchInput").disabled = false;
     tabs.forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
 
@@ -185,9 +162,7 @@ tabs.forEach(tab => {
       searchBox.style.display = "block";
     }
 
-    if (!text.includes("QUẢN")) {
-      canEdit = false; // 🔒 rời khỏi là khóa
-    }
+
 
     if (text.includes("HOA")) {
       renderFlowerGrid();
@@ -210,7 +185,6 @@ async function loadUsers() {
   const { data } = await client.from("users").select("*");
   allUsers = data || [];
 }
-loadUsers();
 
 /* SORT HOA */
 function sortFlowers() {
@@ -296,19 +270,37 @@ function renderFlowerFiltered(list) {
         <div class="group-title">${type} (${grouped[type].length})</div>
 
         <div class="grid">
-          ${grouped[type].map(f => `
-            <div class="grid-item" onclick="selectFlower('${f.id}','${f.flower_name}','${f.flower_img}')">
-  <img src="${f.flower_img || ''}">
-  
-  <span>
-    <span style="color:${getColor(type)}">
-      ${highlight(f.flower_name)}
-    </span>
-    <br>
-    <small>${flowerCountMap[f.id] || 0} thành viên</small>
-  </span>
-</div>
-          `).join("")}
+          ${grouped[type].map(f => {
+      const activeTab = document.querySelector(".nav-item.active").innerText;
+
+      const isEdit = editingUser && typeof editingUser === "object";
+
+      let click = "";
+
+      // 👉 đang edit → cho toggle
+      if (isEdit) {
+        click = `onclick="toggleFlower('${f.id}')"`
+      }
+      // 👉 tab HOA → cho select
+      else if (!activeTab.includes("THÀNH")) {
+        click = `onclick="selectFlower('${f.id}','${f.flower_name}','${f.flower_img}')"`
+      }
+      // 👉 tab THÀNH → không click
+
+      return `
+    <div class="grid-item" ${click}>
+      <img src="${f.flower_img || ''}">
+      
+      <span>
+        <span style="color:${getColor(type)}">
+          ${highlight(f.flower_name)}
+        </span>
+        <br>
+        <small>${flowerCountMap[f.id] || 0} thành viên</small>
+      </span>
+    </div>
+  `;
+    }).join("")}
         </div>
       </div>
     `;
@@ -354,8 +346,6 @@ function renderUserFiltered(list) {
 function highlight(text) {
   const raw = document.getElementById("searchInput").value.trim();
   if (!raw) return text;
-
-  const keyword = normalize(raw);
 
   return text.replace(new RegExp(`(${raw})`, "gi"), `<mark>$1</mark>`);
 }
@@ -654,29 +644,6 @@ async function addUser() {
   renderUserGrid();
 }
 
-/*SỬA HOA USER
-async function assignFlower() {
-  const name = document.getElementById("assignUser").value;
-  const flowerId = document.getElementById("assignFlower").value;
-
-  const { data } = await client
-    .from("users")
-    .select("*")
-    .eq("name", name)
-    .single();
-
-  if (!data) return showToast("Không tìm thấy thành viên");
-
-  const updated = [...(data.flowers || []), String(flowerId)];
-
-  await client
-    .from("users")
-    .update({ flowers: updated })
-    .eq("id", data.id);
-
-  showToast("Đã cập nhật hoa");
-}*/
-
 //CONVERT TÊN HOA SANG TÊN ẢNH
 function toFileName(str) {
   return str
@@ -696,8 +663,15 @@ function startEditUser(name) {
 
   // 🔥 nếu là admin → cho vào luôn
   if (currentRole === "admin") {
-    editingUser = allUsers.find(u => u.name === name);
-    if (!editingUser) return;
+    const user = allUsers.find(u => u.name === name);
+    if (!user) return;
+
+    // 🔥 clone để không ảnh hưởng data gốc
+    editingUser = {
+      ...user,
+      flowers: [...(user.flowers || [])]
+    };
+    /*if (!editingUser) return;*/
 
     renderEditUser();
     return;
@@ -716,7 +690,6 @@ function confirmEdit() {
     return;
   }
 
-  canEdit = true;
 
   closePwModal();
 
@@ -724,7 +697,10 @@ function confirmEdit() {
   const user = allUsers.find(u => u.name === editingUser);
   if (!user) return;
 
-  editingUser = user;
+  editingUser = {
+    ...user,
+    flowers: [...(user.flowers || [])]
+  };
   renderEditUser();
 }
 
