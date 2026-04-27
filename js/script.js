@@ -791,19 +791,22 @@ function toggleFlower(id) {
 
 //UPDATE DB
 async function updateUserFlowers() {
-  await client
+  const { error } = await client
     .from("users")
     .update({ flowers: editingUser.flowers })
     .eq("id", editingUser.id);
 
+  if (error) {
+    console.error(error);
+    return showToast("Update lỗi");
+  }
+
+  await loadUsers(); // 🔥 chuẩn nhất
+
+  buildFlowerCount();
+
   showToast("Đã cập nhật hoa");
 
-  canEdit = false; // 🔒 khóa lại
-
-  const { data } = await client.from("users").select("*");
-  allUsers = data || [];
-
-  buildFlowerCount(); // nếu chưa có thì thêm
   selectUser(editingUser.name);
 }
 
