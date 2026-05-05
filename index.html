@@ -2,87 +2,273 @@
 <html lang="vi">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hoa Tặc App</title>
-
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoa Tặc App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 
-<body>
+<body class="bg-[#fcfcfc]">
+    <div id="toast-container"></div>
+    <header class="header-fixed">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col items-center">
+            <div class="flex items-center gap-2">
+                <div class="logo-square">HT</div>
+                <h1 class="text-lg font-bold tracking-tighter uppercase">Hoa Tặc Hội</h1>
+            </div>
+            <p class="text-[9px] text-gray-400 uppercase tracking-[0.3em] mt-1">ID 2200061 | CHƠI VỪA SỨC, VUI HẾT MÌNH
+            </p>
+        </div>
+        <div class="nav-section">
+            <div class="max-w-6xl mx-auto px-4 flex flex-col items-center gap-4 pb-4">
+                <nav class="flex gap-6 text-[11px] uppercase tracking-widest font-bold">
+                    <button onclick="showTab('flowers')" id="btn-flowers" class="tab-active">HOA TƯƠI</button>
+                    <button onclick="showTab('members')" id="btn-members" class="text-gray-400 hover:text-black">THÀNH
+                        VIÊN</button>
+                    <button onclick="showTab('notices')" id="btn-notices" class="text-gray-400 hover:text-black">THÔNG
+                        BÁO</button>
+                    <button onclick="showTab('admin')" id="btn-admin" class="text-gray-400 hover:text-black">QUẢN
+                        LÝ</button>
+                </nav>
+                <div class="relative w-full max-w-sm">
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm nhanh..." class="search-input">
+                </div>
+            </div>
+        </div>
+    </header>
 
-  <header class="app-header">
-    <div class="navbar">
-      <div class="nav-top">
-        <img src="https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/hoatac-logo.png" class="logo">
-      </div>
-
-      <div class="nav-menu">
-        <div class="nav-item active">HOA TƯƠI</div>
-        <div class="nav-item">THÀNH VIÊN</div>
-        <div class="nav-item">QUẢN LÝ</div>
-      </div>
-
-      <!-- SEARCH (giữ nguyên cho màn Hoa tươi) -->
-      <div class="search-wrapper">
-        <input id="searchInput" placeholder="Tìm kiếm..." oninput="handleSearch()" />
-
-        <div class="search-icon" onclick="handleSearch()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="7"></circle>
-            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
-          </svg>
+    <main class="max-w-6xl mx-auto p-4 mt-[150px]">
+        <!-- Loading indicator -->
+        <div id="loading-indicator" class="fixed inset-0 z-[150] flex items-center justify-center bg-[#fcfcfc]">
+            <div class="flex flex-col items-center gap-3">
+                <div class="logo-square animate-pulse">HT</div>
+                <p class="text-[9px] text-gray-400 uppercase tracking-[0.3em]">Đang tải dữ liệu...</p>
+            </div>
         </div>
 
-        <div id="selectedTag" class="tag hidden">
-          <img id="tagImg" />
-          <span id="tagText"></span>
-          <span id="tagRemove">✕</span>
+        <section id="tab-flowers" class="block space-y-4"></section>
+        <section id="tab-members" class="hidden space-y-4"></section>
+        <section id="tab-notices" class="hidden space-y-4"></section>
+
+        <section id="tab-admin" class="hidden space-y-4">
+            <!-- 1. FORM ĐĂNG NHẬP -->
+            <div id="admin-login-form"
+                class="max-w-sm mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-[11px] font-bold tracking-widest mb-4 text-center">ĐĂNG NHẬP</h2>
+                <div class="space-y-3">
+                    <input type="email" id="login-email" placeholder="Nhập Email..." class="search-input !text-left">
+                    <input type="password" id="login-password" placeholder="Nhập Mật khẩu..."
+                        class="search-input !text-left">
+                    <button onclick="handleLogin()" id="btn-login" class="btn-primary w-full mt-2">Xác nhận</button>
+                </div>
+            </div>
+
+            <!-- 2. NỘI DUNG QUẢN LÝ -->
+            <div id="admin-content" class="hidden space-y-4">
+                <div class="flex justify-end w-full md:w-1/2 mx-auto px-3">
+                    <button onclick="handleLogout()"
+                        class="text-[9px] text-red-400 font-bold tracking-widest hover:text-red-600">
+                        [Đăng xuất]
+                    </button>
+                </div>
+
+                <!-- KHỐI QUẢN LÝ HOA -->
+                <div class="group-container w-full md:w-1/2 mx-auto" style="border-left-color: #000">
+                    <div class="group-header flex justify-between items-center px-3 rounded-xl transition-all cursor-pointer"
+                        onclick="toggleCollapse(this.querySelector('button'))">
+                        <span>QUẢN LÝ HOA TƯƠI</span>
+                        <button
+                            class="w-6 h-6 flex items-center justify-center border border-current rounded-full hover:bg-black hover:text-white transition-colors">+</button>
+                    </div>
+                    <div
+                        class="content-body hidden flex flex-col gap-3 p-3 bg-gray-50 rounded-b-xl border-t border-gray-200">
+                        <div id="admin-flower-select"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="flower-name" placeholder="Tên hoa tươi..."
+                                class="search-input !text-left flex-1">
+                            <div id="flower-color" class="w-32"></div>
+                        </div>
+                        <div
+                            class="flex flex-col items-center gap-2 border-2 border-dashed border-gray-100 p-4 rounded-xl bg-white">
+                            <button onclick="document.getElementById('flower-image-input').click()"
+                                class="btn-outline">Thêm ảnh hoa tươi</button>
+                            <div class="cropper-container-wrapper"><img id="cropper-preview" src=""></div>
+                            <input type="file" id="flower-image-input" accept="image/*" class="hidden"
+                                onchange="initCropper(event)">
+                        </div>
+                        <div class="flex gap-2" id="flower-btn-group">
+                            <button id="btn-flower-add" onclick="saveFlower('add')"
+                                class="btn-primary flex-1">Thêm</button>
+                            <button id="btn-flower-edit" onclick="saveFlower('edit')"
+                                class="btn-outline hidden flex-1">Lưu</button>
+                            <button id="btn-flower-delete" onclick="deleteFlower()"
+                                class="btn-danger hidden flex-1">Xóa</button>
+                            <button onclick="resetFlowerForm()" class="btn-reset flex-1">Làm mới</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KHỐI QUẢN LÝ THÀNH VIÊN -->
+                <div class="group-container w-full md:w-1/2 mx-auto" style="border-left-color: #000">
+                    <div class="group-header flex justify-between items-center px-3 rounded-xl transition-all cursor-pointer"
+                        onclick="toggleCollapse(this.querySelector('button'))">
+                        <span>QUẢN LÝ THÀNH VIÊN</span>
+                        <button
+                            class="w-6 h-6 flex items-center justify-center border border-current rounded-full hover:bg-black hover:text-white transition-colors">+</button>
+                    </div>
+                    <div
+                        class="content-body hidden flex flex-col gap-3 p-3 bg-gray-50 rounded-b-xl border-t border-gray-200">
+                        <div id="admin-member-select"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="member-name" placeholder="Tên thành viên..."
+                                class="search-input !text-left flex-1">
+                            <div id="member-role" class="w-32"></div>
+                        </div>
+                        <div class="flex gap-2" id="member-btn-group">
+                            <button id="btn-member-add" onclick="saveMember('add')"
+                                class="btn-primary flex-1">Thêm</button>
+                            <button id="btn-member-edit" onclick="saveMember('edit')"
+                                class="btn-outline hidden flex-1">Lưu</button>
+                            <button id="btn-member-delete" onclick="deleteMember()"
+                                class="btn-danger hidden flex-1">Xóa</button>
+                            <button onclick="resetMemberForm()" class="btn-reset flex-1">Làm mới</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KHỐI TẠO THÔNG BÁO -->
+                <div class="group-container w-full md:w-1/2 mx-auto" style="border-left-color: #000">
+                    <div class="group-header flex justify-between items-center px-3 rounded-xl transition-all cursor-pointer"
+                        onclick="toggleCollapse(this.querySelector('button'))">
+                        <span>QUẢN LÝ THÔNG BÁO</span>
+                        <button
+                            class="w-6 h-6 flex items-center justify-center border border-current rounded-full hover:bg-black hover:text-white transition-colors">+</button>
+                    </div>
+                    <div
+                        class="content-body hidden flex flex-col gap-3 p-3 bg-gray-50 rounded-b-xl border-t border-gray-200">
+                        <div id="admin-notice-select"></div>
+                        <input type="text" id="notice-title" placeholder="Tiêu đề thông báo..."
+                            class="search-input !text-left">
+                        <textarea id="notice-content" placeholder="Nội dung thông báo..."
+                            class="search-input !text-left resize-none h-24"></textarea>
+                        <div class="flex gap-2" id="notice-btn-group">
+                            <button id="btn-notice-add" onclick="saveNotice('add')"
+                                class="btn-primary flex-1">Thêm</button>
+                            <button id="btn-notice-edit" onclick="saveNotice('edit')"
+                                class="btn-outline hidden flex-1">Lưu</button>
+                            <button id="btn-notice-delete" onclick="deleteNotice()"
+                                class="btn-danger hidden flex-1">Xóa</button>
+                            <button onclick="resetNoticeForm()" class="btn-reset flex-1">Làm mới</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KHỐI ĐỔI MẬT KHẨU CẬP NHẬT -->
+                <div class="group-container w-full md:w-1/2 mx-auto" style="border-left-color: #000">
+                    <div class="group-header flex justify-between items-center px-3 rounded-xl transition-all cursor-pointer"
+                        onclick="toggleCollapse(this.querySelector('button'))">
+                        <span>ĐỔI MẬT KHẨU TRUY CẬP</span>
+                        <button
+                            class="w-6 h-6 flex items-center justify-center border border-current rounded-full hover:bg-black hover:text-white transition-colors">+</button>
+                    </div>
+                    <div
+                        class="content-body hidden flex flex-col gap-3 p-3 bg-gray-50 rounded-b-xl border-t border-gray-200">
+                        <input type="password" id="current-password" placeholder="Mật khẩu hiện tại..."
+                            class="search-input !text-left">
+                        <input type="password" id="new-password" placeholder="Mật khẩu mới..."
+                            class="search-input !text-left">
+                        <input type="password" id="confirm-password" placeholder="Xác nhận mật khẩu mới..."
+                            class="search-input !text-left">
+                        <div class="flex gap-2">
+                            <button onclick="changeUpdatePassword()" class="btn-primary flex-1">Lưu</button>
+                            <button onclick="resetPasswordForm()" class="btn-reset flex-1">Làm mới</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- Đóng admin-content -->
+        </section> <!-- Đóng tab-admin -->
+    </main>
+
+    <!-- Modal chi tiết hoa -->
+    <div id="flowerModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-gray-900/20" onclick="closeFlowerModal()"></div>
+        <div id="modalContent"
+            class="bg-white w-full max-w-[320px] h-[340px] rounded-2xl shadow-2xl relative z-10 overflow-hidden transform transition-all scale-95 opacity-0 p-4">
+            <div class="flex flex-col h-full">
+                <!-- Hàng 1: Hình + Tên hoa -->
+                <div class="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100 flex-shrink-0">
+                    <img id="modalImg" src="" class="w-12 h-12 rounded-xl object-cover flex-shrink-0 border">
+                    <h2 id="modalTitle" class="text-[11px] leading-snug break-words flex-1"></h2>
+                </div>
+                <!-- Hàng 2: Danh sách thành viên sở hữu -->
+                <div id="modalMemberList" class="flex flex-col gap-1 overflow-y-auto pr-1 flex-1"></div>
+                <!-- Nút đóng cố định dưới cùng -->
+                <div class="flex-shrink-0 pt-3 flex justify-center">
+                    <button onclick="closeFlowerModal()" class="btn-ghost">Đóng</button>
+                </div>
+            </div>
         </div>
-
-        <!-- <div id="suggestions"></div> -->
-      </div>
     </div>
-  </header>
 
-  <main class="container">
-    <div id="result"></div>
-  </main>
+    <!-- Modal thành viên (1 modal, nhiều bước) -->
+    <div id="memberModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-gray-900/20" onclick="closeMemberModal()"></div>
+        <div id="memberModalContent"
+            class="bg-white w-full max-w-[320px] rounded-2xl shadow-2xl relative z-10 overflow-hidden transform transition-all scale-95 opacity-0">
 
-  <script src="js/script.js"></script>
-  <div id="toast" class="toast hidden"></div>
-  <!-- LOGIN MODAL -->
-  <div id="loginModal" class="modal">
-    <div class="modal-box pw-box">
-      <div class="pw-title">🔑</div>
+            <!-- BƯỚC 1: Thống kê hoa (chiều cao cố định) -->
+            <div id="mem-step-stats" class="p-4 flex flex-col h-[340px]">
+                <div class="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100 flex-shrink-0">
+                    <img id="memModalImg" src="" class="w-12 h-12 rounded-xl object-cover flex-shrink-0 border">
+                    <h2 id="memModalName" class="text-[11px] leading-snug break-words flex-1"></h2>
+                </div>
+                <div id="memFlowerStats" class="flex flex-col gap-1 overflow-y-auto pr-1 flex-1"></div>
+                <div class="flex-shrink-0 pt-3 flex justify-center gap-4">
+                    <button
+                        onclick="showMemStep('flowers'); selectedFlowerIds = new Set(ownerships.filter(o => o.member_id === currentMemberId).map(o => o.flower_id)); renderFlowerSelectList(); document.getElementById('flower-select-search').value='';"
+                        class="btn-primary">Cập nhật</button>
+                    <button onclick="closeMemberModal()" class="btn-ghost">Đóng</button>
+                </div>
+            </div>
 
-      <input id="loginEmail" placeholder="Email">
-      <input id="loginPassword" type="password" placeholder="Mật khẩu"
-        onkeypress="if(event.key==='Enter') handleLogin()">
+            <!-- BƯỚC 3: Chọn hoa (chiều cao cố định) -->
+            <div id="mem-step-flowers" class="hidden p-4 flex flex-col h-[80vh] md:h-[70vh]">
+                <h3 class="text-[11px] font-bold tracking-widest text-center mb-3 flex-shrink-0">CHỌN HOA SỞ HỮU</h3>
+                <input type="text" id="flower-select-search" placeholder="Tìm kiếm hoa..."
+                    class="search-input !text-left mb-3 flex-shrink-0" oninput="renderFlowerSelectList(this.value)">
+                <div id="flowerSelectList" class="overflow-y-auto flex-1 space-y-3 pr-1"></div>
+                <div class="flex gap-2 mt-4 flex-shrink-0">
+                    <button onclick="saveOwnership()" class="btn-outline flex-1">Lưu</button>
+                    <button onclick="showMemStep('stats')" class="btn-ghost flex-1">Hủy</button>
+                </div>
+            </div>
 
-      <div class="pw-actions">
-        <button class="btn primary" onclick="handleLogin()">Đăng nhập</button>
-        <button class="btn ghost" onclick="closeLoginModal()">Huỷ</button>
-      </div>
+        </div>
     </div>
-  </div>
 
-  <!-- PASSWORD MODAL -->
-  <div id="pwModal" class="modal">
-    <div class="modal-box pw-box">
-      <div class="pw-title">🔒</div>
-
-      <input id="pwInput" type="password" placeholder="Nhập mật khẩu..."
-        onkeypress="if(event.key==='Enter') confirmEdit()">
-
-      <div class="pw-actions">
-        <button class="btn primary" onclick="confirmEdit()">Xác nhận</button>
-        <button class="btn ghost" onclick="closePwModal()">Huỷ</button>
-      </div>
+    <!-- Modal nhập password truy cập -->
+    <div id="accessModal" class="fixed inset-0 z-[500] flex items-center justify-center px-4"
+        style="background: rgba(255,255,255,0.95)">
+        <div
+            class="bg-white w-full max-w-[280px] rounded-2xl shadow-2xl p-6 flex flex-col gap-4 border border-gray-100">
+            <div class="flex flex-col items-center gap-1">
+                <div class="logo-square mb-2">HT</div>
+                <h2 class="text-[11px] font-bold tracking-widest">HOA TẶC HỘI</h2>
+                <p class="text-[9px] text-gray-400 tracking-widest">NHẬP MẬT KHẨU ĐỂ TIẾP TỤC</p>
+            </div>
+            <input type="password" id="access-password-input" placeholder="Mật khẩu..." class="search-input !text-left"
+                onkeydown="if(event.key==='Enter') verifyAccessPassword()">
+            <button onclick="verifyAccessPassword()" class="btn-primary w-full">Xác nhận</button>
+        </div>
     </div>
-  </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/script.js"></script>
 </body>
 
 </html>
