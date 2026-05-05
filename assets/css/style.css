@@ -1,0 +1,258 @@
+/* PHẦN CHUNG & HEADER */
+.header-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #fff;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+/* LOGO */
+.logo-square {
+    width: 26px;
+    height: 26px;
+    background: #000;
+    color: #fff;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 9px;
+}
+
+/* HIỆU ỨNG TAB ACTIVE */
+.tab-active {
+    color: #000 !important;
+    border-bottom: 2px solid #000;
+}
+
+/* ĐỊNH DẠNG SEARCHBOX & TEXTBOX */
+.search-input {
+    width: 100%;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 16px;
+    /*font-weight: 400;*/
+    outline: none;
+    transition: background 0.2s;
+    /* Thêm: Hiệu ứng khi nhấn vào */
+}
+
+@media (min-width: 768px){
+    .search-input{
+        font-size: 11px;
+    }
+}
+
+.search-input:focus {
+    background: #ededed;
+    /* Thêm: Làm đậm màu khi đang nhập */
+}
+
+/* POPUP thông báo */
+/* Khung chứa thông báo căn giữa */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    /* Điều chỉnh để nằm dưới thanh tìm kiếm của bạn */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    /* Cho phép tương tác với toast nếu cần */
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: fadeInDown 0.5s ease forwards;
+}
+
+/* Hiệu ứng trượt từ trên xuống */
+@keyframes fadeInDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.toast.hide {
+    transform: translateY(-20px);
+    opacity: 0;
+}
+
+/* BUTTON HỆ THỐNG */
+.btn-primary {
+    background: #000;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 8px 16px;
+    letter-spacing: 0.1em;
+    transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+    opacity: 0.75;
+}
+
+.btn-outline {
+    background: #2563eb;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 8px 16px;
+    letter-spacing: 0.1em;
+    transition: opacity 0.15s;
+}
+
+.btn-outline:hover {
+    opacity: 0.75;
+}
+
+.btn-ghost {
+    background: #fff;
+    color: #000;
+    border: 1px solid #000;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 8px 16px;
+    letter-spacing: 0.1em;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-ghost:hover {
+    background: #000;
+    color: #fff;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 8px 16px;
+    letter-spacing: 0.1em;
+    transition: opacity 0.15s;
+}
+
+.btn-danger:hover {
+    opacity: 0.75;
+}
+
+.btn-reset {
+    background: #fff;
+    color: #16a34a;
+    border: 1px solid #16a34a;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 8px 16px;
+    letter-spacing: 0.1em;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-reset:hover {
+    background: #16a34a;
+    color: #fff;
+}
+
+/* CUSTOM DROPDOWN */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select-trigger {
+    width: 100%;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 32px 8px 12px;
+    font-size: 11px;
+    outline: none;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s;
+}
+
+.custom-select-trigger:after {
+    content: '▾';
+    font-size: 10px;
+    /*color: #9ca3af;*/
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.custom-select-trigger.open:after {
+    content: '▴';
+}
+
+.custom-select-trigger:focus,
+.custom-select-trigger.open {
+    background: #ededed;
+}
+
+.custom-select-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+}
+
+.custom-select-options.open {
+    display: block;
+}
+
+.custom-select-group {
+    padding: 6px 10px 2px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    /*color: #9ca3af;*/
+}
+
+.custom-select-option {
+    padding: 8px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-radius: 6px;
+    margin: 1px 4px;
+}
+
+.custom-select-option:hover {
+    background: #f5f5f5;
+}
+
+.custom-select-option.selected {
+    font-weight: 700;
+}

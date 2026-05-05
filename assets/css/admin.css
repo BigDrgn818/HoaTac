@@ -1,1 +1,42 @@
+/* TAB QUẢN LÝ */
+.group-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid #f5f5f5;
+    border-left-width: 2px;
+}
 
+/* TIÊU ĐỀ TỪNG KHỐI */
+.group-header {
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.content-body {
+    transition: all 0.3s ease;
+    /* Thêm hiệu ứng mượt mà */
+}
+
+/* Khung chứa ảnh luôn cố định hình vuông 1:1 */
+.cropper-container-wrapper {
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
+    /* Lệnh ép khung luôn là hình vuông */
+    margin: 10px auto;
+    background: #f9f9f9;
+    border-radius: 12px;
+    overflow: hidden;
+    display: block;
+    border: 1px solid #eee;
+}
+
+#cropper-preview {
+    display: block;
+    max-width: 100%;
+    margin: 0 auto;
+    /* KÉO ẢNH RA GIỮA KHUNG KHI TẢI LẠI HOA ĐÃ CÓ */
+}
