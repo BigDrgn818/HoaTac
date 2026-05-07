@@ -43,8 +43,8 @@
     /* Thêm: Hiệu ứng khi nhấn vào */
 }
 
-@media (min-width: 768px){
-    .search-input{
+@media (min-width: 768px) {
+    .search-input {
         font-size: 11px;
     }
 }
@@ -255,4 +255,8 @@
 
 .custom-select-option.selected {
     font-weight: 700;
+}
+
+body.modal-open {
+    overflow: hidden;
 }
