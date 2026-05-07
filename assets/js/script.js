@@ -986,6 +986,8 @@ function toggleFlowerSelect(flowerId, hexColor) {
 
 // Lưu dữ liệu sở hữu
 async function saveOwnership() {
+    const saveBtn = document.querySelector('#mem-step-flowers .btn-primary');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Đang lưu...'; }
     try {
         const { error: deleteError } = await supabaseClient
             .from('tgh_ownership')
@@ -1020,6 +1022,8 @@ async function saveOwnership() {
 
     } catch (e) {
         showToast("Lỗi lưu dữ liệu: " + e.message, "error");
+    } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Xác nhận'; }
     }
 }
 
