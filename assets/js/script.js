@@ -54,7 +54,7 @@ async function fetchMembersData() {
     try {
         const [memberRes, ownRes] = await Promise.all([
             supabaseClient.from('tgh_members').select('*'),
-            supabaseClient.from('tgh_ownership').select('*')
+            supabaseClient.from('tgh_ownership').select('*').order('updated_at', { ascending: false }).limit(10000)
         ]);
         if (memberRes.error) throw memberRes.error;
         if (ownRes.error) throw ownRes.error;
@@ -186,7 +186,7 @@ function renderFlowers(filter = '') {
             // Vẽ từng thẻ hoa bên trong
             sortedGroup.forEach(f => {
                 const imageUrl = f.image_url ? f.image_url : 'https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/macdinh.png';
-                const ownerCount = ownerships.filter(o => o.flower_id === f.id).length;
+                const ownerCount = ownerships.filter(o => o.flower_id == f.id).length;
 
                 html += `
                     <div class="bg-[#fcfcfc] border border-gray-100 p-1 rounded-xl flex flex-col gap-2 cursor-pointer hover:shadow-md hover:bg-white transition-shadow" onclick="openFlowerModal(${f.id})">
@@ -261,7 +261,7 @@ function renderMembers(filter = '') {
                 const avatarUrl = m.avatar_url ? m.avatar_url : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=random`;
 
                 // Đếm số lượng hoa thành viên này đang sở hữu
-                const ownedFlowersCount = ownerships.filter(o => o.member_id === m.id).length;
+                const ownedFlowersCount = ownerships.filter(o => o.member_id == m.id).length;
 
                 html += `
     <div class="bg-[#fcfcfc] border border-gray-100 p-1 rounded-xl flex flex-col gap-2 cursor-pointer hover:shadow-md hover:bg-white transition-shadow" onclick="openMemberModal(${m.id})">
@@ -482,6 +482,7 @@ function loadFlowerData(id) {
     if (!f) return resetFlowerForm();
     currentFlowerId = f.id;
     document.getElementById('flower-name').value = f.name;
+    document.getElementById('flower-description').value = f.description || '';
     document.getElementById('cropper-preview').src = f.image_url;
     setCustomSelectValue('flower-color', f.color_group, `Phẩm ${f.color_group}`, COLOR_MAP[f.color_group]);
     toggleButtons('flower', 'edit');
@@ -628,10 +629,12 @@ function openFlowerModal(id) {
     const f = flowers.find(x => x.id === id);
     if (!f) return;
 
+    document.body.classList.add('modal-open');
+
     // 1. Thông tin hoa
     const hexColor = COLOR_MAP[f.color_group] || '#000';
     const modalTitle = document.getElementById('modalTitle');
-    modalTitle.innerText = f.name;
+    modalTitle.innerHTML = `${f.name}<br><span style="font-size: 9px; font-style: italic; color: #000000;">Sự kiện: ${f.description || ''}</span>`;
     modalTitle.style.color = hexColor;
 
     const imageUrl = f.image_url || 'https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/macdinh.png';
@@ -643,7 +646,7 @@ function openFlowerModal(id) {
     const memberListContainer = document.getElementById('modalMemberList');
     const roleOrder = ['Hội Trưởng', 'Hội Phó', 'Quản Lý', 'Tinh Anh', 'Thành Viên', 'Clone'];
     const owners = ownerships
-        .filter(o => o.flower_id === id)
+        .filter(o => o.flower_id == id)
         .sort((a, b) => {
             const memberA = members.find(m => m.id === a.member_id);
             const memberB = members.find(m => m.id === b.member_id);
@@ -685,6 +688,8 @@ function openFlowerModal(id) {
 function closeFlowerModal() {
     const content = document.getElementById('modalContent');
     const modal = document.getElementById('flowerModal');
+
+    document.body.classList.remove('modal-open');
 
     // 1. Chỉ gỡ hiệu ứng Mở và thêm hiệu ứng Đóng (không xóa các class nền, viền)
     content.classList.remove('scale-100', 'opacity-100');
@@ -834,6 +839,8 @@ function openMemberModal(memberId) {
     const member = members.find(m => m.id === memberId);
     if (!member) return;
 
+    document.body.classList.add('modal-open');
+
     currentMemberId = memberId;
 
     document.getElementById('memModalName').innerText = member.name;
@@ -854,6 +861,7 @@ function openMemberModal(memberId) {
 // Đóng modal thành viên
 function closeMemberModal() {
     const content = document.getElementById('memberModalContent');
+    document.body.classList.remove('modal-open');
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
     setTimeout(() => document.getElementById('memberModal').classList.add('hidden'), 200);
@@ -862,7 +870,7 @@ function closeMemberModal() {
 // Render thống kê hoa theo phẩm
 function renderMemberFlowerStats(memberId) {
     const statsContainer = document.getElementById('memFlowerStats');
-    const memberOwns = ownerships.filter(o => o.member_id === memberId);
+    const memberOwns = ownerships.filter(o => o.member_id == memberId);
 
     const counts = { 'Đỏ': 0, 'Cam': 0, 'Tím': 0, 'Lam': 0, 'Lục': 0 };
     memberOwns.forEach(own => {
@@ -900,7 +908,7 @@ async function verifyPassword() {
         if (inputPass === data.value) {
             // Đúng pass → load danh sách hoa đã chọn rồi chuyển bước
             selectedFlowerIds = new Set(
-                ownerships.filter(o => o.member_id === currentMemberId).map(o => o.flower_id)
+                ownerships.filter(o => o.member_id == currentMemberId).map(o => o.flower_id)
             );
             document.getElementById('flower-select-search').value = '';
             renderFlowerSelectList();
@@ -999,7 +1007,8 @@ async function saveOwnership() {
             const newRows = Array.from(selectedFlowerIds).map(flowerId => ({
                 member_id: currentMemberId,
                 flower_id: flowerId,
-                quantity: 1
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             }));
             const { error: insertError } = await supabaseClient
                 .from('tgh_ownership')
@@ -1007,11 +1016,16 @@ async function saveOwnership() {
             if (insertError) throw insertError;
         }
 
-        // Cập nhật lại ownerships local
-        ownerships = ownerships.filter(o => o.member_id !== currentMemberId);
-        selectedFlowerIds.forEach(flowerId => {
-            ownerships.push({ member_id: currentMemberId, flower_id: flowerId, quantity: 1 });
-        });
+        // Fetch lại ownerships từ DB với filter member hiện tại
+        const { data: freshOwn, error: ownError } = await supabaseClient
+            .from('tgh_ownership')
+            .select('*')
+            .eq('member_id', currentMemberId);
+        if (!ownError && freshOwn) {
+            // Cập nhật local ownerships - chỉ member hiện tại
+            ownerships = ownerships.filter(o => o.member_id !== currentMemberId);
+            ownerships.push(...freshOwn);
+        }
 
         showToast("Cập nhật thành công!");
 
