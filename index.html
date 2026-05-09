@@ -62,7 +62,9 @@
                     <input type="email" id="login-email" placeholder="Nhập Email..." class="search-input !text-left">
                     <input type="password" id="login-password" placeholder="Nhập Mật khẩu..."
                         class="search-input !text-left">
-                    <button onclick="handleLogin()" id="btn-login" class="btn-primary w-full mt-2">Xác nhận</button>
+                    <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                        <button onclick="handleLogin()" id="btn-login" class="btn-primary w-28">Xác nhận</button>
+                    </div>
                 </div>
             </div>
 
@@ -101,14 +103,14 @@
                             <input type="file" id="flower-image-input" accept="image/*" class="hidden"
                                 onchange="initCropper(event)">
                         </div>
-                        <div class="flex gap-2" id="flower-btn-group">
+                        <div class="flex-shrink-0 pt-2 flex justify-center gap-4" id="flower-btn-group">
                             <button id="btn-flower-add" onclick="saveFlower('add')"
-                                class="btn-primary flex-1">Thêm</button>
+                                class="btn-primary w-28">Thêm</button>
                             <button id="btn-flower-edit" onclick="saveFlower('edit')"
-                                class="btn-outline hidden flex-1">Lưu</button>
+                                class="btn-outline hidden w-28">Lưu</button>
                             <button id="btn-flower-delete" onclick="deleteFlower()"
-                                class="btn-danger hidden flex-1">Xóa</button>
-                            <button onclick="resetFlowerForm()" class="btn-reset flex-1">Làm mới</button>
+                                class="btn-danger hidden w-28">Xóa</button>
+                            <button onclick="resetFlowerForm()" class="btn-reset w-28">Làm mới</button>
                         </div>
                     </div>
                 </div>
@@ -129,14 +131,14 @@
                                 class="search-input !text-left flex-1">
                             <div id="member-role" class="w-32"></div>
                         </div>
-                        <div class="flex gap-2" id="member-btn-group">
+                        <div class="flex-shrink-0 pt-2 flex justify-center gap-4" id="member-btn-group">
                             <button id="btn-member-add" onclick="saveMember('add')"
-                                class="btn-primary flex-1">Thêm</button>
+                                class="btn-primary w-28">Thêm</button>
                             <button id="btn-member-edit" onclick="saveMember('edit')"
-                                class="btn-outline hidden flex-1">Lưu</button>
+                                class="btn-outline hidden w-28">Lưu</button>
                             <button id="btn-member-delete" onclick="deleteMember()"
-                                class="btn-danger hidden flex-1">Xóa</button>
-                            <button onclick="resetMemberForm()" class="btn-reset flex-1">Làm mới</button>
+                                class="btn-danger hidden w-28">Xóa</button>
+                            <button onclick="resetMemberForm()" class="btn-reset w-28">Làm mới</button>
                         </div>
                     </div>
                 </div>
@@ -156,14 +158,14 @@
                             class="search-input !text-left">
                         <textarea id="notice-content" placeholder="Nội dung thông báo..."
                             class="search-input !text-left resize-none h-24"></textarea>
-                        <div class="flex gap-2" id="notice-btn-group">
+                        <div class="flex-shrink-0 pt-2 flex justify-center gap-4" id="notice-btn-group">
                             <button id="btn-notice-add" onclick="saveNotice('add')"
-                                class="btn-primary flex-1">Thêm</button>
+                                class="btn-primary w-28">Thêm</button>
                             <button id="btn-notice-edit" onclick="saveNotice('edit')"
-                                class="btn-outline hidden flex-1">Lưu</button>
+                                class="btn-outline hidden w-28">Lưu</button>
                             <button id="btn-notice-delete" onclick="deleteNotice()"
-                                class="btn-danger hidden flex-1">Xóa</button>
-                            <button onclick="resetNoticeForm()" class="btn-reset flex-1">Làm mới</button>
+                                class="btn-danger hidden w-28">Xóa</button>
+                            <button onclick="resetNoticeForm()" class="btn-reset w-28">Làm mới</button>
                         </div>
                     </div>
                 </div>
@@ -184,9 +186,9 @@
                             class="search-input !text-left">
                         <input type="password" id="confirm-password" placeholder="Xác nhận mật khẩu mới..."
                             class="search-input !text-left">
-                        <div class="flex gap-2">
-                            <button onclick="changeUpdatePassword()" class="btn-primary flex-1">Lưu</button>
-                            <button onclick="resetPasswordForm()" class="btn-reset flex-1">Làm mới</button>
+                        <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                            <button onclick="changeUpdatePassword()" class="btn-primary w-28">Lưu</button>
+                            <button onclick="resetPasswordForm()" class="btn-reset w-28">Làm mới</button>
                         </div>
                     </div>
                 </div>
@@ -210,8 +212,8 @@
                 <div id="modalDesc" class="text-[10px] text-gray-400 leading-relaxed mb-2 px-2"></div>
                 <div id="modalMemberList" class="flex flex-col gap-1 overflow-y-auto pr-1 flex-1"></div>
                 <!-- Nút đóng cố định dưới cùng -->
-                <div class="flex-shrink-0 pt-3 flex justify-center">
-                    <button onclick="closeFlowerModal()" class="btn-ghost">Đóng</button>
+                <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                    <button onclick="closeFlowerModal()" class="btn-ghost w-28">Đóng</button>
                 </div>
             </div>
         </div>
@@ -223,30 +225,44 @@
         <div id="memberModalContent"
             class="bg-white w-full max-w-[320px] rounded-2xl shadow-2xl relative z-10 overflow-hidden transform transition-all scale-95 opacity-0">
 
-            <!-- BƯỚC 1: Thống kê hoa (chiều cao cố định) -->
             <div id="mem-step-stats" class="p-4 flex flex-col h-[340px]">
                 <div class="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100 flex-shrink-0">
                     <img id="memModalImg" src="" class="w-12 h-12 rounded-xl object-cover flex-shrink-0 border">
                     <h2 id="memModalName" class="text-[11px] leading-snug break-words flex-1"></h2>
                 </div>
                 <div id="memFlowerStats" class="flex flex-col gap-1 overflow-y-auto pr-1 flex-1"></div>
-                <div class="flex-shrink-0 pt-3 flex justify-center gap-4">
-                    <button
-                        onclick="showMemStep('flowers'); selectedFlowerIds = new Set(ownerships.filter(o => o.member_id === currentMemberId).map(o => o.flower_id)); renderFlowerSelectList(); document.getElementById('flower-select-search').value='';"
-                        class="btn-primary">Cập nhật</button>
-                    <button onclick="closeMemberModal()" class="btn-ghost">Đóng</button>
+                <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                    <button onclick="showFlowersByColorView()" class="btn-primary w-28">Chi tiết</button>
+                    <button onclick="closeMemberModal()" class="btn-ghost w-28">Đóng</button>
                 </div>
             </div>
 
-            <!-- BƯỚC 3: Chọn hoa (chiều cao cố định) -->
             <div id="mem-step-flowers" class="hidden p-4 flex flex-col h-[80vh] md:h-[70vh]">
                 <h3 class="text-[11px] font-bold tracking-widest text-center mb-3 flex-shrink-0">CHỌN HOA SỞ HỮU</h3>
+
                 <input type="text" id="flower-select-search" placeholder="Tìm kiếm hoa..."
                     class="search-input !text-left mb-3 flex-shrink-0" oninput="renderFlowerSelectList(this.value)">
+
                 <div id="flowerSelectList" class="overflow-y-auto flex-1 space-y-3 pr-1"></div>
-                <div class="flex gap-2 mt-4 flex-shrink-0">
-                    <button onclick="saveOwnership()" class="btn-outline flex-1">Lưu</button>
-                    <button onclick="showMemStep('stats')" class="btn-ghost flex-1">Hủy</button>
+
+                <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                    <button onclick="saveOwnership()" class="btn-outline w-28">Lưu</button>
+                    <button onclick="showMemStep('view')" class="btn-ghost w-28">Hủy</button>
+                </div>
+            </div>
+
+            <div id="mem-step-view" class="hidden p-4 flex flex-col h-[80vh] md:h-[70vh]">
+                <h3 id="mem-view-main-title"
+                    class="text-[11px] font-bold tracking-widest text-center mb-3 flex-shrink-0 uppercase">HOA TƯƠI ĐANG
+                    SỞ HỮU</h3>
+
+                <div id="mem-view-list" class="overflow-y-auto flex-1 space-y-3 pr-1 custom-scrollbar"></div>
+
+                <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                    <button
+                        onclick="showMemStep('flowers'); selectedFlowerIds = new Set(ownerships.filter(o => o.member_id === currentMemberId).map(o => o.flower_id)); renderFlowerSelectList(); document.getElementById('flower-select-search').value='';"
+                        class="btn-primary w-28">Cập nhật</button>
+                    <button onclick="showMemStep('stats')" class="btn-ghost w-28">Đóng</button>
                 </div>
             </div>
 
@@ -265,7 +281,9 @@
             </div>
             <input type="password" id="access-password-input" placeholder="Mật khẩu..." class="search-input !text-left"
                 onkeydown="if(event.key==='Enter') verifyAccessPassword()">
-            <button onclick="verifyAccessPassword()" class="btn-primary w-full">Xác nhận</button>
+            <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
+                <button onclick="verifyAccessPassword()" class="btn-primary w-28">Xác nhận</button>
+            </div>
         </div>
     </div>
 
