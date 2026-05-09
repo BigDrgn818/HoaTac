@@ -326,6 +326,7 @@ function initCropper(event) {
 async function saveFlower(mode) {
     const nameInput = document.getElementById('flower-name');
     const colorInput = document.getElementById('flower-color');
+    const description = document.getElementById('flower-description').value.trim();
     const fileInput = document.getElementById('flower-image-input');
 
     const name = nameInput.value.trim();
@@ -398,6 +399,7 @@ function resetFlowerForm() {
 
     // Reset input text
     document.getElementById('flower-name').value = '';
+    document.getElementById('flower-description').value = '';
 
     // Reset custom dropdown
     resetCustomSelect('admin-flower-select');
@@ -818,7 +820,7 @@ function showToast(message, type = 'success') {
 let selectedFlowerIds = new Set();
 
 // Hàm chuyển bước trong modal
-function showMemStep(step) {
+/*function showMemStep(step) {
     ['stats', 'flowers'].forEach(s => {
         document.getElementById(`mem-step-${s}`).classList.add('hidden');
     });
@@ -826,6 +828,28 @@ function showMemStep(step) {
 
     const modalContent = document.getElementById('memberModalContent');
     if (step === 'flowers') {
+        modalContent.classList.remove('max-w-[320px]');
+        modalContent.classList.add('md:max-w-[640px]');
+    } else {
+        modalContent.classList.add('max-w-[320px]');
+        modalContent.classList.remove('md:max-w-[640px]');
+    }
+}*/
+
+function showMemStep(step) {
+    // Ẩn tất cả các step
+    ['stats', 'flowers', 'view'].forEach(s => {
+        const el = document.getElementById(`mem-step-${s}`);
+        if (el) el.classList.add('hidden');
+    });
+
+    // Hiện step mục tiêu
+    const target = document.getElementById(`mem-step-${step}`);
+    if (target) target.classList.remove('hidden');
+
+    const modalContent = document.getElementById('memberModalContent');
+    // Cả step flowers và view đều mở rộng form ra 640px
+    if (step === 'flowers' || step === 'view') {
         modalContent.classList.remove('max-w-[320px]');
         modalContent.classList.add('md:max-w-[640px]');
     } else {
@@ -867,7 +891,6 @@ function closeMemberModal() {
     setTimeout(() => document.getElementById('memberModal').classList.add('hidden'), 200);
 }
 
-// Render thống kê hoa theo phẩm
 function renderMemberFlowerStats(memberId) {
     const statsContainer = document.getElementById('memFlowerStats');
     const memberOwns = ownerships.filter(o => o.member_id == memberId);
@@ -882,12 +905,14 @@ function renderMemberFlowerStats(memberId) {
 
     statsContainer.innerHTML = Object.keys(counts).map(color => {
         const hexColor = COLOR_MAP[color] || '#ccc';
+        // Đã xóa onclick, cursor-pointer và hover
         return `
-        <div class="flex items-center justify-between text-[11px] p-2 bg-gray-50 rounded-lg border-l-2" style="border-left-color: ${hexColor}">
-            <span style="color: ${hexColor}">Hoa ${color}</span>
-            <span class="text-[9px] text-gray-400 tracking-wide">${counts[color]} hoa</span>
-        </div>
-    `;
+    <div class="flex items-center justify-between text-[11px] p-2 bg-gray-50 rounded-lg border-l-2" 
+         style="border-left-color: ${hexColor}">
+        <span style="color: ${hexColor}">Hoa ${color}</span>
+        <span class="text-[9px] text-gray-400 tracking-wide">${counts[color]} hoa</span>
+    </div>
+`;
     }).join('');
 }
 
@@ -921,7 +946,6 @@ async function verifyPassword() {
     }
 }
 
-// Render danh sách hoa để chọn
 function renderFlowerSelectList(filter = '') {
     const container = document.getElementById('flowerSelectList');
     const sortOrder = ['Đỏ', 'Cam', 'Tím', 'Lam', 'Lục'];
@@ -945,23 +969,27 @@ function renderFlowerSelectList(filter = '') {
 
         if (sortedGroup.length === 0) return;
 
+        // Đếm số lượng hoa ĐÃ CHỌN trong nhóm này lúc vừa mở form
+        const selectedCount = sortedGroup.filter(f => selectedFlowerIds.has(f.id)).length;
+
         html += `
             <div class="group-container" style="border-left-color: ${hexColor}">
-                <div class="group-header pb-2 border-b border-gray-100" style="color: ${hexColor}">
-                    Hoa ${colorName.toUpperCase()} (${sortedGroup.length})
+                <div id="header-count-${colorName}" class="group-header pb-2 border-b border-gray-100" style="color: ${hexColor}">
+                    Hoa ${colorName.toUpperCase()} (${selectedCount}/${sortedGroup.length})
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                <div id="grid-color-${colorName}" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
         `;
 
         sortedGroup.forEach(f => {
             const isSelected = selectedFlowerIds.has(f.id);
             const imageUrl = f.image_url || 'https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/macdinh.png';
 
+            // Thêm lệnh updateFlowerCountUI vào sự kiện onclick để "chọn tới đâu đếm tới đó"
             html += `
                 <div class="p-1 rounded-xl flex flex-col gap-2 cursor-pointer transition-shadow ${isSelected ? 'bg-white shadow-md' : 'bg-[#fcfcfc]'}"
                     id="flower-select-card-${f.id}"
                     style="${isSelected ? `border: 1px solid ${hexColor}` : 'border: 1px solid #f3f4f6'}"
-                    onclick="toggleFlowerSelect(${f.id}, '${hexColor}')">
+                    onclick="toggleFlowerSelect(${f.id}, '${hexColor}'); updateFlowerCountUI('${colorName}');">
                     <div class="flex items-center gap-2">
                         <img src="${imageUrl}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
                         <div class="text-[11px] leading-tight flex-1 break-words" style="color: ${hexColor}">${f.name}</div>
@@ -973,7 +1001,30 @@ function renderFlowerSelectList(filter = '') {
         html += `</div></div>`;
     });
 
-    container.innerHTML = html || `<div class="text-center text-[11px] text-gray-400 py-6 tracking-widest">Không tìm thấy hoa phù hợp</div>`;
+    container.innerHTML = html || `<div class="text-center text-[11px] text-gray-400 py-6 tracking-widest uppercase">Không tìm thấy hoa phù hợp</div>`;
+}
+
+function updateFlowerCountUI(colorName) {
+    const header = document.getElementById(`header-count-${colorName}`);
+    const grid = document.getElementById(`grid-color-${colorName}`);
+    
+    if (!header || !grid) return;
+
+    // Lấy tất cả các thẻ hoa trong phẩm màu này
+    const cards = grid.querySelectorAll('[id^="flower-select-card-"]');
+    const totalCount = cards.length;
+    let selectedCount = 0;
+
+    // Đếm xem có bao nhiêu ID đang nằm trong mảng selectedFlowerIds
+    cards.forEach(card => {
+        const flowerId = parseInt(card.id.replace('flower-select-card-', ''));
+        if (selectedFlowerIds.has(flowerId)) {
+            selectedCount++;
+        }
+    });
+
+    // Cập nhật lại tiêu đề realtime
+    header.innerText = `Hoa ${colorName.toUpperCase()} (${selectedCount}/${totalCount})`;
 }
 
 // Toggle chọn/bỏ chọn hoa
@@ -997,34 +1048,51 @@ async function saveOwnership() {
     const saveBtn = document.querySelector('#mem-step-flowers .btn-primary');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Đang lưu...'; }
     try {
-        const { error: deleteError } = await supabaseClient
+        // Lấy danh sách hoa hiện tại trong DB
+        const { data: existingRows, error: fetchError } = await supabaseClient
             .from('tgh_ownership')
-            .delete()
+            .select('flower_id')
             .eq('member_id', currentMemberId);
-        if (deleteError) throw deleteError;
+        if (fetchError) throw fetchError;
 
-        if (selectedFlowerIds.size > 0) {
-            const newRows = Array.from(selectedFlowerIds).map(flowerId => ({
-                member_id: currentMemberId,
-                flower_id: flowerId,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            }));
+        const existingIds = new Set(existingRows.map(r => r.flower_id));
+
+        // Xóa hoa bị bỏ chọn
+        const toDelete = [...existingIds].filter(id => !selectedFlowerIds.has(id));
+        if (toDelete.length > 0) {
+            const { error: deleteError } = await supabaseClient
+                .from('tgh_ownership')
+                .delete()
+                .eq('member_id', currentMemberId)
+                .in('flower_id', toDelete);
+            if (deleteError) throw deleteError;
+        }
+
+        // Thêm hoa mới được chọn
+        const toInsert = [...selectedFlowerIds].filter(id => !existingIds.has(id));
+        if (toInsert.length > 0) {
             const { error: insertError } = await supabaseClient
                 .from('tgh_ownership')
-                .insert(newRows);
+                .insert(toInsert.map(flowerId => ({
+                    member_id: currentMemberId,
+                    flower_id: flowerId,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })));
             if (insertError) throw insertError;
         }
 
-        // Fetch lại ownerships từ DB với filter member hiện tại
+        // Fetch lại ownerships từ DB
+        // Đợi Supabase commit xong
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Fetch lại ownerships từ DB
         const { data: freshOwn, error: ownError } = await supabaseClient
             .from('tgh_ownership')
             .select('*')
-            .eq('member_id', currentMemberId);
+            .limit(10000);
         if (!ownError && freshOwn) {
-            // Cập nhật local ownerships - chỉ member hiện tại
-            ownerships = ownerships.filter(o => o.member_id !== currentMemberId);
-            ownerships.push(...freshOwn);
+            ownerships = freshOwn;
         }
 
         showToast("Cập nhật thành công!");
@@ -1333,4 +1401,76 @@ function initAdminDropdowns() {
         { value: 'Hội Phó', label: 'Hội Phó', color: ROLE_COLORS['Hội Phó'] },
         { value: 'Hội Trưởng', label: 'Hội Trưởng', color: ROLE_COLORS['Hội Trưởng'] },
     ], () => { }, 'Chọn chức vụ');
+}
+
+
+// Xem hoa mem
+function showFlowersByColorView() {
+    showMemStep('view');
+
+    // Lấy tên thành viên và đổi tiêu đề ---
+    const memberName = document.getElementById('memModalName').innerText;
+    const titleEl = document.getElementById('mem-view-main-title');
+    if (titleEl) {
+        titleEl.innerText = `HOA TƯƠI ${memberName} ĐANG SỞ HỮU`;
+    }
+
+    const container = document.getElementById('mem-view-list');
+    container.scrollTop = 0;
+
+    // Lấy tất cả ID hoa mà thành viên hiện tại sở hữu
+    const ownedFlowerIds = ownerships
+        .filter(o => o.member_id == currentMemberId)
+        .map(o => o.flower_id);
+
+    // Nếu chưa có hoa nào thì báo trống
+    if (ownedFlowerIds.length === 0) {
+        container.innerHTML = `<div class="text-center text-[11px] text-gray-400 py-10 tracking-widest">Thành viên chưa sở hữu hoa nào</div>`;
+        return;
+    }
+
+    const sortOrder = ['Đỏ', 'Cam', 'Tím', 'Lam', 'Lục'];
+    let html = '';
+
+    // Duyệt qua từng màu để nhóm lại
+    sortOrder.forEach(colorName => {
+        // Lọc hoa theo màu hiện tại VÀ thành viên có sở hữu
+        const ownedFlowersInColor = flowers
+            .filter(f => f.color_group === colorName && ownedFlowerIds.includes(f.id))
+            .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+        // Nếu màu này không có hoa nào thì bỏ qua, chạy sang màu tiếp theo
+        if (ownedFlowersInColor.length === 0) return;
+
+        const hexColor = COLOR_MAP[colorName] || '#000';
+
+        // Bọc trong group-container, thêm mb-4 để cách các nhóm màu với nhau
+        html += `
+            <div class="group-container mb-4" style="border-left-color: ${hexColor}">
+                <div class="group-header pb-2 border-b border-gray-100" style="color: ${hexColor}">
+                    Hoa ${colorName.toUpperCase()} (${ownedFlowersInColor.length})
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+        `;
+
+        // Đổ danh sách hoa của màu đó
+        ownedFlowersInColor.forEach(f => {
+            const imageUrl = f.image_url || 'https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/macdinh.png';
+
+            html += `
+                <div class="p-1 rounded-xl flex flex-col gap-2 bg-[#fcfcfc]"
+                    id="flower-view-card-${f.id}"
+                    style="border: 1px solid #f3f4f6">
+                    <div class="flex items-center gap-2">
+                        <img src="${imageUrl}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
+                        <div class="text-[11px] leading-tight flex-1 break-words" style="color: ${hexColor}">${f.name}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+    });
+
+    container.innerHTML = html;
 }
