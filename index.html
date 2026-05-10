@@ -170,6 +170,21 @@
                     </div>
                 </div>
 
+                <!-- KHỐI STATUS CẬP NHẬT -->
+                <div class="group-container w-full md:w-1/2 mx-auto" style="border-left-color: #000">
+                    <div class="group-header flex justify-between items-center px-3 rounded-xl transition-all cursor-pointer"
+                        onclick="toggleCollapse(this.querySelector('button'))">
+                        <span>TRẠNG THÁI THÀNH VIÊN</span>
+                        <button
+                            class="w-6 h-6 flex items-center justify-center border border-current rounded-full hover:bg-black hover:text-white transition-colors">+</button>
+                    </div>
+
+                    <div
+                        class="content-body hidden p-4 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-center">
+                        <button onclick="openUpdateStatusModal()" class="btn-primary w-28">Bật / Tắt</button>
+                    </div>
+                </div>
+
                 <!-- KHỐI ĐỔI MẬT KHẨU CẬP NHẬT -->
                 <div class="group-container w-full md:w-1/2 mx-auto" style="border-left-color: #000">
                     <div class="group-header flex justify-between items-center px-3 rounded-xl transition-all cursor-pointer"
@@ -259,9 +274,7 @@
                 <div id="mem-view-list" class="overflow-y-auto flex-1 space-y-3 pr-1 custom-scrollbar"></div>
 
                 <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
-                    <button
-                        onclick="showMemStep('flowers'); selectedFlowerIds = new Set(ownerships.filter(o => o.member_id === currentMemberId).map(o => o.flower_id)); renderFlowerSelectList(); document.getElementById('flower-select-search').value='';"
-                        class="btn-primary w-28">Cập nhật</button>
+                    <button onclick="handleUpdateClick()" class="btn-primary w-28">Cập nhật</button>
                     <button onclick="showMemStep('stats')" class="btn-ghost w-28">Đóng</button>
                 </div>
             </div>
@@ -283,6 +296,25 @@
                 onkeydown="if(event.key==='Enter') verifyAccessPassword()">
             <div class="flex-shrink-0 pt-2 flex justify-center gap-4">
                 <button onclick="verifyAccessPassword()" class="btn-primary w-28">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="updateStatusModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-gray-900/20" onclick="closeUpdateStatusModal()"></div>
+        <div id="updateStatusModalContent"
+            class="bg-white w-full max-w-[320px] md:max-w-[640px] rounded-2xl shadow-2xl relative z-10 overflow-hidden transform transition-all scale-95 opacity-0 flex flex-col h-[80vh] md:h-[70vh] p-4">
+
+            <h3 class="text-[11px] font-bold tracking-widest text-center mb-3 flex-shrink-0 uppercase">BẬT /
+                TẮT QUYỀN CẬP NHẬT</h3>
+
+            <input type="text" id="status-member-search" placeholder="Tìm kiếm thành viên..."
+                class="search-input !text-left mb-3 flex-shrink-0" oninput="renderUpdateStatusModule(this.value)">
+
+            <div id="update-status-list" class="overflow-y-auto flex-1 pr-1 custom-scrollbar">
+            </div>
+            <div class="flex justify-center gap-4 mt-4 pt-4 border-t flex-shrink-0">
+                <button onclick="closeUpdateStatusModal()" class="btn-ghost w-28">Đóng</button>
             </div>
         </div>
     </div>
