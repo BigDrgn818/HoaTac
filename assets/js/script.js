@@ -6,6 +6,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let flowers = [], members = [], ownerships = [], notices = [], currentTab = 'flowers';
 const COLOR_MAP = { 'Đỏ': '#dc2626', 'Cam': '#ea580c', 'Tím': '#9333ea', 'Lam': '#2563eb', 'Lục': '#16a34a' };
 const ROLE_COLORS = { 'Hội Trưởng': '#dc2626', 'Hội Phó': '#ea580c', 'Quản Lý': '#9333ea', 'Tinh Anh': '#2563eb', 'Thành Viên': '#16a34a', 'Clone': '#000000' };
+const ROLE_ORDER = ['Hội Trưởng', 'Hội Phó', 'Quản Lý', 'Tinh Anh', 'Thành Viên', 'Clone'];
 let cropper = null, currentFlowerId = null, currentMemberId = null;
 
 /* --- XÁC THỰC TRUY CẬP --- */
@@ -53,7 +54,7 @@ function checkAccess() {
 async function fetchMembersData() {
     try {
         const [memberRes, ownRes] = await Promise.all([
-            supabaseClient.from('tgh_members').select('*'),
+            supabaseClient.from('tgh_members').select('*, is_update_allowed'),
             supabaseClient.from('tgh_ownership').select('*').order('updated_at', { ascending: false }).limit(10000)
         ]);
         if (memberRes.error) throw memberRes.error;
@@ -109,11 +110,11 @@ function setBusy(btnId, isBusy) {
 async function fetchData() {
     document.getElementById('loading-indicator')?.classList.remove('hidden');
     try {
-        const [flowerRes, noticeRes] = await Promise.all([
+        const [flowerRes, noticeRes, _] = await Promise.all([
             supabaseClient.from('tgh_flowers').select('*').order('name'),
             supabaseClient.from('tgh_notices').select('*').order('created_at', { ascending: false }),
+            fetchMembersData()
         ]);
-        await fetchMembersData();
 
         if (noticeRes.error) throw noticeRes.error;
         notices = noticeRes.data || [];
@@ -122,6 +123,7 @@ async function fetchData() {
         flowers = flowerRes.data || [];
 
         refreshUI();
+        renderUpdateStatusModule();
         document.getElementById('loading-indicator')?.classList.add('hidden');
     } catch (err) {
         document.getElementById('loading-indicator')?.classList.add('hidden');
@@ -136,6 +138,7 @@ function refreshUI() {
     else if (currentTab === 'admin') {
         updateFlowerDroplist();
         updateMemberDroplist();
+        updateNoticeDroplist();
     }
 }
 
@@ -231,9 +234,11 @@ function renderMembers(filter = '') {
     }
 
     // 2. Cấu hình nhóm Chức vụ và Màu sắc viền khối
-    const roleOrder = ['Hội Trưởng', 'Hội Phó', 'Quản Lý', 'Tinh Anh', 'Thành Viên', 'Clone'];
+    const flowerCounts = ownerships.reduce((acc, o) => {
+        acc[o.member_id] = (acc[o.member_id] || 0) + 1;
+        return acc;
+    }, {});
 
-    // Gom nhóm
     const groupedMembers = filtered.reduce((acc, member) => {
         const role = member.role || 'Thành Viên';
         if (!acc[role]) acc[role] = [];
@@ -243,7 +248,7 @@ function renderMembers(filter = '') {
 
     let html = '<div class="space-y-4">';
 
-    roleOrder.forEach(roleName => {
+    ROLE_ORDER.forEach(roleName => {
         if (groupedMembers[roleName] && groupedMembers[roleName].length > 0) {
 
             // Sắp xếp A-Z
@@ -261,7 +266,7 @@ function renderMembers(filter = '') {
                 const avatarUrl = m.avatar_url ? m.avatar_url : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=random`;
 
                 // Đếm số lượng hoa thành viên này đang sở hữu
-                const ownedFlowersCount = ownerships.filter(o => o.member_id == m.id).length;
+                const ownedFlowersCount = flowerCounts[m.id] || 0;
 
                 html += `
     <div class="bg-[#fcfcfc] border border-gray-100 p-1 rounded-xl flex flex-col gap-2 cursor-pointer hover:shadow-md hover:bg-white transition-shadow" onclick="openMemberModal(${m.id})">
@@ -428,8 +433,7 @@ async function deleteFlower() {
         if (flowerToDelete && flowerToDelete.image_url) {
             // Bước 1: Trích xuất tên file từ URL
             // Ví dụ: .../flowers/hoa-hong_123.png -> lấy "hoa-hong_123.png"
-            const urlParts = flowerToDelete.image_url.split('/');
-            const fileName = urlParts[urlParts.length - 1];
+            const fileName = flowerToDelete.image_url.split('/').pop();
 
             // Bước 2: Xóa file ảnh trên Supabase Storage
             const { error: storageError } = await supabaseClient.storage
@@ -552,10 +556,9 @@ async function deleteMember() {
  * Tối ưu: Phân nhóm theo chức vụ (Role) để dễ quản lý
  */
 function updateMemberDroplist() {
-    const roleOrder = ['Hội Trưởng', 'Hội Phó', 'Quản Lý', 'Tinh Anh', 'Thành Viên', 'Clone'];
     const options = [];
 
-    roleOrder.forEach(roleName => {
+    ROLE_ORDER.forEach(roleName => {
         const membersInRole = members.filter(m => m.role === roleName);
         if (membersInRole.length > 0) {
             options.push({ isGroup: true, label: roleName, color: ROLE_COLORS[roleName] });
@@ -603,14 +606,6 @@ function showTab(tab) {
 }
 
 // Hàm chuyển tiếng Việt thành viết liền, không dấu, giữ nguyên In Hoa/In Thường
-function formatFileName(str) {
-    return str
-        .normalize("NFD") // Tách phần dấu ra khỏi chữ cái
-        .replace(/[\u0300-\u036f]/g, "") // Xóa toàn bộ dấu tiếng Việt
-        .replace(/đ/g, "d").replace(/Đ/g, "D") // Xử lý chữ Đ/đ
-        .replace(/[^a-zA-Z0-9]/g, ''); // Xóa tất cả khoảng trắng và ký tự đặc biệt (-, !, @,...)
-}
-
 function removeVietnameseTones(str) {
     if (!str) return "";
     return str
@@ -618,6 +613,11 @@ function removeVietnameseTones(str) {
         .replace(/[\u0300-\u036f]/g, "") // Xóa dấu
         .replace(/đ/g, "d").replace(/Đ/g, "D") // Xử lý chữ đ
         .toLowerCase(); // Đưa về chữ thường
+}
+
+// Gọi luôn hàm trên, chỉ cần xóa thêm khoảng trắng/kí tự đặc biệt là xong
+function formatFileName(str) {
+    return removeVietnameseTones(str).replace(/[^a-z0-9]/g, '');
 }
 
 // Chuyển đổi Base64 từ Cropper thành Blob để upload
@@ -646,14 +646,13 @@ function openFlowerModal(id) {
 
     // 2. Danh sách thành viên sở hữu hoa này (data thật)
     const memberListContainer = document.getElementById('modalMemberList');
-    const roleOrder = ['Hội Trưởng', 'Hội Phó', 'Quản Lý', 'Tinh Anh', 'Thành Viên', 'Clone'];
     const owners = ownerships
         .filter(o => o.flower_id == id)
         .sort((a, b) => {
             const memberA = members.find(m => m.id === a.member_id);
             const memberB = members.find(m => m.id === b.member_id);
             if (!memberA || !memberB) return 0;
-            const roleCompare = roleOrder.indexOf(memberA.role) - roleOrder.indexOf(memberB.role);
+            const roleCompare = ROLE_ORDER.indexOf(memberA.role) - ROLE_ORDER.indexOf(memberB.role);
             if (roleCompare !== 0) return roleCompare;
             return memberA.name.localeCompare(memberB.name, 'vi');
         });
@@ -748,9 +747,7 @@ async function handleLogin() {
         showToast("Đăng nhập thành công!");
         document.getElementById('admin-login-form').classList.add('hidden');
         document.getElementById('admin-content').classList.remove('hidden');
-        updateFlowerDroplist();
-        updateMemberDroplist();
-        updateNoticeDroplist();
+        refreshUI();
         initAdminDropdowns();
     } catch (e) {
         showToast("Sai email hoặc mật khẩu!", "error");
@@ -891,6 +888,30 @@ function closeMemberModal() {
     setTimeout(() => document.getElementById('memberModal').classList.add('hidden'), 200);
 }
 
+// Render thống kê hoa theo phẩm
+/*function renderMemberFlowerStats(memberId) {
+    const statsContainer = document.getElementById('memFlowerStats');
+    const memberOwns = ownerships.filter(o => o.member_id == memberId);
+
+    const counts = { 'Đỏ': 0, 'Cam': 0, 'Tím': 0, 'Lam': 0, 'Lục': 0 };
+    memberOwns.forEach(own => {
+        const flower = flowers.find(f => f.id === own.flower_id);
+        if (flower && counts[flower.color_group] !== undefined) {
+            counts[flower.color_group]++;
+        }
+    });
+
+    statsContainer.innerHTML = Object.keys(counts).map(color => {
+        const hexColor = COLOR_MAP[color] || '#ccc';
+        return `
+        <div class="flex items-center justify-between text-[11px] p-2 bg-gray-50 rounded-lg border-l-2" style="border-left-color: ${hexColor}">
+            <span style="color: ${hexColor}">Hoa ${color}</span>
+            <span class="text-[9px] text-gray-400 tracking-wide">${counts[color]} hoa</span>
+        </div>
+    `;
+    }).join('');
+}*/
+
 function renderMemberFlowerStats(memberId) {
     const statsContainer = document.getElementById('memFlowerStats');
     const memberOwns = ownerships.filter(o => o.member_id == memberId);
@@ -945,6 +966,61 @@ async function verifyPassword() {
         showToast("Lỗi xác minh: " + e.message, "error");
     }
 }
+
+// Render danh sách hoa để chọn
+/*function renderFlowerSelectList(filter = '') {
+    const container = document.getElementById('flowerSelectList');
+    const sortOrder = ['Đỏ', 'Cam', 'Tím', 'Lam', 'Lục'];
+    const normalizedFilter = removeVietnameseTones(filter);
+
+    const groupedFlowers = flowers.reduce((acc, flower) => {
+        const group = flower.color_group || 'Khác';
+        if (!acc[group]) acc[group] = [];
+        acc[group].push(flower);
+        return acc;
+    }, {});
+
+    let html = '';
+    sortOrder.forEach(colorName => {
+        if (!groupedFlowers[colorName]) return;
+
+        const hexColor = COLOR_MAP[colorName] || '#000';
+        const sortedGroup = groupedFlowers[colorName]
+            .filter(f => removeVietnameseTones(f.name).includes(normalizedFilter))
+            .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+        if (sortedGroup.length === 0) return;
+
+        html += `
+            <div class="group-container" style="border-left-color: ${hexColor}">
+                <div class="group-header pb-2 border-b border-gray-100" style="color: ${hexColor}">
+                    Hoa ${colorName.toUpperCase()} (${sortedGroup.length})
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+        `;
+
+        sortedGroup.forEach(f => {
+            const isSelected = selectedFlowerIds.has(f.id);
+            const imageUrl = f.image_url || 'https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/macdinh.png';
+
+            html += `
+                <div class="p-1 rounded-xl flex flex-col gap-2 cursor-pointer transition-shadow ${isSelected ? 'bg-white shadow-md' : 'bg-[#fcfcfc]'}"
+                    id="flower-select-card-${f.id}"
+                    style="${isSelected ? `border: 1px solid ${hexColor}` : 'border: 1px solid #f3f4f6'}"
+                    onclick="toggleFlowerSelect(${f.id}, '${hexColor}')">
+                    <div class="flex items-center gap-2">
+                        <img src="${imageUrl}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
+                        <div class="text-[11px] leading-tight flex-1 break-words" style="color: ${hexColor}">${f.name}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+    });
+
+    container.innerHTML = html || `<div class="text-center text-[11px] text-gray-400 py-6 tracking-widest">Không tìm thấy hoa phù hợp</div>`;
+}*/
 
 function renderFlowerSelectList(filter = '') {
     const container = document.getElementById('flowerSelectList');
@@ -1007,7 +1083,7 @@ function renderFlowerSelectList(filter = '') {
 function updateFlowerCountUI(colorName) {
     const header = document.getElementById(`header-count-${colorName}`);
     const grid = document.getElementById(`grid-color-${colorName}`);
-    
+
     if (!header || !grid) return;
 
     // Lấy tất cả các thẻ hoa trong phẩm màu này
@@ -1464,6 +1540,163 @@ function showFlowersByColorView() {
                     <div class="flex items-center gap-2">
                         <img src="${imageUrl}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
                         <div class="text-[11px] leading-tight flex-1 break-words" style="color: ${hexColor}">${f.name}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+// Hàm đổi trạng thái khi click vào thẻ member
+async function toggleUpdateStatus(memberId, currentStatus) {
+    const newStatus = !currentStatus;
+
+    // 1. Cập nhật lên Supabase
+    const { error } = await supabaseClient
+        .from('tgh_members')
+        .update({ is_update_allowed: newStatus })
+        .eq('id', memberId);
+
+    if (error) {
+        showToast("Lỗi khi cập nhật trạng thái: " + error.message, "error");
+        return;
+    }
+
+    // 2. Cập nhật lại dữ liệu cục bộ
+    const memberIdx = members.findIndex(m => m.id === memberId);
+    if (memberIdx !== -1) {
+        members[memberIdx].is_update_allowed = newStatus;
+    }
+
+    // 3. LẤY TỪ KHÓA TÌM KIẾM HIỆN TẠI ĐỂ GIỮ NGUYÊN BỘ LỌC
+    const searchInput = document.getElementById('status-member-search');
+    const currentFilter = searchInput ? searchInput.value : '';
+    
+    // Vẽ lại danh sách nhưng vẫn giữ bộ lọc
+    renderUpdateStatusModule(currentFilter);
+}
+
+// Hàm kiểm tra khi bấm nút Cập nhật ở Modal View
+function handleUpdateClick() {
+    const member = members.find(m => m.id === currentMemberId);
+
+    // Kiểm tra cột is_update_allowed trong database
+    if (member && member.is_update_allowed) {
+        showMemStep('flowers');
+        selectedFlowerIds = new Set(ownerships.filter(o => o.member_id === currentMemberId).map(o => o.flower_id));
+        renderFlowerSelectList();
+        const searchInput = document.getElementById('flower-select-search');
+        if (searchInput) searchInput.value = '';
+    } else {
+        // Đã đổi từ alert sang showToast
+        showToast("Đang tắt cập nhật hoa, liên hệ JK để mở!", "error");
+    }
+}
+
+// --- ĐÓNG / MỞ MODAL TRẠNG THÁI CẬP NHẬT ---
+function openUpdateStatusModal() {
+    // 1. Reset search và load lại danh sách
+    const searchInput = document.getElementById('status-member-search');
+    if (searchInput) searchInput.value = '';
+    renderUpdateStatusModule();
+
+    // 2. Mở modal với hiệu ứng y hệt openMemberModal
+    document.body.classList.add('modal-open');
+    const modal = document.getElementById('updateStatusModal');
+    modal.classList.remove('hidden');
+
+    setTimeout(() => {
+        const content = document.getElementById('updateStatusModalContent');
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+}
+
+function closeUpdateStatusModal() {
+    const content = document.getElementById('updateStatusModalContent');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+        document.getElementById('updateStatusModal').classList.add('hidden');
+        document.body.classList.remove('modal-open');
+    }, 200);
+}
+
+// --- RENDER DANH SÁCH (CÓ TÌM KIẾM) ---
+function renderUpdateStatusModule(filter = '') {
+    const container = document.getElementById('update-status-list');
+    if (!container || !members) return;
+
+    const normalizedFilter = typeof removeVietnameseTones === 'function'
+        ? removeVietnameseTones(filter)
+        : filter.toLowerCase();
+
+    // 1. Lọc thành viên theo thanh search
+    const filteredMembers = members.filter(m => {
+        const name = typeof removeVietnameseTones === 'function' ? removeVietnameseTones(m.name) : m.name.toLowerCase();
+        return name.includes(normalizedFilter);
+    });
+
+    if (filteredMembers.length === 0) {
+        container.innerHTML = `<div class="text-center text-[11px] text-gray-400 py-6 tracking-widest uppercase">Không tìm thấy thành viên</div>`;
+        return;
+    }
+
+    // 2. Nhóm thành viên theo cấp bậc (role)
+    const groupedMembers = filteredMembers.reduce((acc, m) => {
+        const role = m.role || 'Thành Viên'; // Mặc định nếu không có
+        if (!acc[role]) acc[role] = [];
+        acc[role].push(m);
+        return acc;
+    }, {});
+
+    // 3. Thứ tự hiển thị duyệt theo mảng ROLE_COLORS từ cao xuống thấp
+    const sortOrder = Object.keys(ROLE_COLORS);
+    let html = '';
+
+    sortOrder.forEach(roleName => {
+        if (!groupedMembers[roleName] || groupedMembers[roleName].length === 0) return;
+
+        const hexColor = ROLE_COLORS[roleName] || '#000';
+        const sortedGroup = groupedMembers[roleName].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+        // 1. Đồng bộ Header nhóm (Có flex justify-between)
+        html += `
+            <div class="group-container mb-4 shadow-sm" style="border-left-color: ${hexColor}">
+                <div class="group-header flex justify-between items-center mb-0 pb-2 border-b border-gray-100">
+                    <span style="color: ${hexColor}">${roleName} (${sortedGroup.length})</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+        `;
+
+        // 2. Đồng bộ UI Thẻ thành viên
+        sortedGroup.forEach(m => {
+            const isON = m.is_update_allowed;
+            const avatarUrl = m.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=random`;
+
+            // Xử lý màu sắc
+            const borderColor = isON ? hexColor : '#f3f4f6';
+            const textColor = isON ? hexColor : '#9ca3af'; // Màu xám chuẩn text-gray-400
+            const bgClass = isON ? 'bg-white shadow-md' : 'bg-[#fcfcfc] hover:bg-white hover:shadow-md';
+            const avatarBorder = isON ? `${hexColor}40` : '#e5e7eb';
+
+            html += `
+                <div class="p-1 rounded-xl flex flex-col gap-2 cursor-pointer transition-shadow ${bgClass}"
+                    style="border: 1px solid ${borderColor};"
+                    onclick="toggleUpdateStatus(${m.id}, ${isON})">
+                    
+                    <div class="flex items-center gap-2">
+                        <img src="${avatarUrl}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0 border" style="border-color: ${avatarBorder}">
+                        <div class="text-[11px] leading-tight flex-1 break-words" style="color: ${textColor}">${m.name}</div>
+                    </div>
+                    
+                    <div class="text-center text-[9px] tracking-wide pt-1 border-t border-dashed border-gray-200" style="color: ${textColor}">
+                        ${isON ? 'Đang MỞ' : 'Đang KHÓA'}
                     </div>
                 </div>
             `;
