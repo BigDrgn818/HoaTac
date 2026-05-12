@@ -644,7 +644,10 @@ function openFlowerModal(id) {
     modalImg.src = imageUrl;
     modalImg.style.borderColor = hexColor + '40';
 
-    // 2. Danh sách thành viên sở hữu hoa này (data thật)
+    // Lấy thứ bậc phẩm hoa từ COLOR_MAP
+    const FLOWER_RANK = Object.keys(COLOR_MAP);
+
+    // 2. Danh sách thành viên sở hữu hoa này
     const memberListContainer = document.getElementById('modalMemberList');
     const owners = ownerships
         .filter(o => o.flower_id == id)
@@ -663,13 +666,34 @@ function openFlowerModal(id) {
             if (!member) return '';
             const roleColor = ROLE_COLORS[member.role] || '#16a34a';
             const avatarUrl = member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random`;
+
+            // Tìm phẩm hoa cao nhất của thành viên này
+            const memberOwnedFlowers = ownerships
+                .filter(own => own.member_id === member.id)
+                .map(own => flowers.find(x => x.id === own.flower_id))
+                .filter(Boolean);
+
+            let highestRankIndex = 999;
+            memberOwnedFlowers.forEach(fw => {
+                const rank = FLOWER_RANK.indexOf(fw.color_group);
+                if (rank !== -1 && rank < highestRankIndex) {
+                    highestRankIndex = rank;
+                }
+            });
+
+            const highestColorGroup = highestRankIndex !== 999 ? FLOWER_RANK[highestRankIndex] : null;
+            const isHighest = (highestColorGroup === f.color_group);
+
+            // GIAO DIỆN: Nếu là cao nhất thì thêm class 'font-bold' vào tên
+            const fontWeightClass = isHighest ? 'font-bold' : '';
+
             return `
-            <div class="flex items-center gap-2 text-[11px] p-2 bg-gray-50 rounded-lg border-l-2" style="border-left-color: ${roleColor}">
+            <div class="flex items-center gap-2 text-[11px] p-2 bg-gray-50 rounded-lg border-l-2" style="border-left-color: ${roleColor};">
                 <img src="${avatarUrl}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
-                <span class="flex-1" style="color: ${roleColor}">${member.name}</span>
+                <span class="flex-1 ${fontWeightClass}" style="color: ${roleColor}">${member.name}</span>
                 <span class="text-[9px] text-gray-400 tracking-wide">${member.role}</span>
             </div>
-        `;
+            `;
         }).join('');
     } else {
         memberListContainer.innerHTML = `<div class="text-center text-[10px] text-gray-400 py-4 tracking-widest">Chưa có thành viên nào sở hữu</div>`;
@@ -817,22 +841,6 @@ function showToast(message, type = 'success') {
 let selectedFlowerIds = new Set();
 
 // Hàm chuyển bước trong modal
-/*function showMemStep(step) {
-    ['stats', 'flowers'].forEach(s => {
-        document.getElementById(`mem-step-${s}`).classList.add('hidden');
-    });
-    document.getElementById(`mem-step-${step}`).classList.remove('hidden');
-
-    const modalContent = document.getElementById('memberModalContent');
-    if (step === 'flowers') {
-        modalContent.classList.remove('max-w-[320px]');
-        modalContent.classList.add('md:max-w-[640px]');
-    } else {
-        modalContent.classList.add('max-w-[320px]');
-        modalContent.classList.remove('md:max-w-[640px]');
-    }
-}*/
-
 function showMemStep(step) {
     // Ẩn tất cả các step
     ['stats', 'flowers', 'view'].forEach(s => {
@@ -889,29 +897,6 @@ function closeMemberModal() {
 }
 
 // Render thống kê hoa theo phẩm
-/*function renderMemberFlowerStats(memberId) {
-    const statsContainer = document.getElementById('memFlowerStats');
-    const memberOwns = ownerships.filter(o => o.member_id == memberId);
-
-    const counts = { 'Đỏ': 0, 'Cam': 0, 'Tím': 0, 'Lam': 0, 'Lục': 0 };
-    memberOwns.forEach(own => {
-        const flower = flowers.find(f => f.id === own.flower_id);
-        if (flower && counts[flower.color_group] !== undefined) {
-            counts[flower.color_group]++;
-        }
-    });
-
-    statsContainer.innerHTML = Object.keys(counts).map(color => {
-        const hexColor = COLOR_MAP[color] || '#ccc';
-        return `
-        <div class="flex items-center justify-between text-[11px] p-2 bg-gray-50 rounded-lg border-l-2" style="border-left-color: ${hexColor}">
-            <span style="color: ${hexColor}">Hoa ${color}</span>
-            <span class="text-[9px] text-gray-400 tracking-wide">${counts[color]} hoa</span>
-        </div>
-    `;
-    }).join('');
-}*/
-
 function renderMemberFlowerStats(memberId) {
     const statsContainer = document.getElementById('memFlowerStats');
     const memberOwns = ownerships.filter(o => o.member_id == memberId);
@@ -968,60 +953,6 @@ async function verifyPassword() {
 }
 
 // Render danh sách hoa để chọn
-/*function renderFlowerSelectList(filter = '') {
-    const container = document.getElementById('flowerSelectList');
-    const sortOrder = ['Đỏ', 'Cam', 'Tím', 'Lam', 'Lục'];
-    const normalizedFilter = removeVietnameseTones(filter);
-
-    const groupedFlowers = flowers.reduce((acc, flower) => {
-        const group = flower.color_group || 'Khác';
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(flower);
-        return acc;
-    }, {});
-
-    let html = '';
-    sortOrder.forEach(colorName => {
-        if (!groupedFlowers[colorName]) return;
-
-        const hexColor = COLOR_MAP[colorName] || '#000';
-        const sortedGroup = groupedFlowers[colorName]
-            .filter(f => removeVietnameseTones(f.name).includes(normalizedFilter))
-            .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
-
-        if (sortedGroup.length === 0) return;
-
-        html += `
-            <div class="group-container" style="border-left-color: ${hexColor}">
-                <div class="group-header pb-2 border-b border-gray-100" style="color: ${hexColor}">
-                    Hoa ${colorName.toUpperCase()} (${sortedGroup.length})
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-        `;
-
-        sortedGroup.forEach(f => {
-            const isSelected = selectedFlowerIds.has(f.id);
-            const imageUrl = f.image_url || 'https://csnnjdfrngfxtslrqfmp.supabase.co/storage/v1/object/public/img/macdinh.png';
-
-            html += `
-                <div class="p-1 rounded-xl flex flex-col gap-2 cursor-pointer transition-shadow ${isSelected ? 'bg-white shadow-md' : 'bg-[#fcfcfc]'}"
-                    id="flower-select-card-${f.id}"
-                    style="${isSelected ? `border: 1px solid ${hexColor}` : 'border: 1px solid #f3f4f6'}"
-                    onclick="toggleFlowerSelect(${f.id}, '${hexColor}')">
-                    <div class="flex items-center gap-2">
-                        <img src="${imageUrl}" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
-                        <div class="text-[11px] leading-tight flex-1 break-words" style="color: ${hexColor}">${f.name}</div>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
-    });
-
-    container.innerHTML = html || `<div class="text-center text-[11px] text-gray-400 py-6 tracking-widest">Không tìm thấy hoa phù hợp</div>`;
-}*/
-
 function renderFlowerSelectList(filter = '') {
     const container = document.getElementById('flowerSelectList');
     const sortOrder = ['Đỏ', 'Cam', 'Tím', 'Lam', 'Lục'];
@@ -1575,7 +1506,7 @@ async function toggleUpdateStatus(memberId, currentStatus) {
     // 3. LẤY TỪ KHÓA TÌM KIẾM HIỆN TẠI ĐỂ GIỮ NGUYÊN BỘ LỌC
     const searchInput = document.getElementById('status-member-search');
     const currentFilter = searchInput ? searchInput.value : '';
-    
+
     // Vẽ lại danh sách nhưng vẫn giữ bộ lọc
     renderUpdateStatusModule(currentFilter);
 }
