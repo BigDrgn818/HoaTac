@@ -11,7 +11,7 @@ let cropper = null, currentFlowerId = null, currentMemberId = null;
 
 /* --- XÁC THỰC TRUY CẬP --- */
 const ACCESS_SESSION_KEY = 'tgh_access';
-const ACCESS_DURATION = 5 * 60 * 1000; // 5 phút
+const ACCESS_DURATION = 60 * 60 * 1000; // 5 phút
 
 async function verifyAccessPassword() {
     const inputPass = document.getElementById('access-password-input').value.trim();
